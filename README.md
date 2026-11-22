@@ -15,7 +15,7 @@ Application Android simple et colorée qui rappelle l'heure des médicaments. El
 ## Installer l'application sur le téléphone
 
 1. Sur le téléphone Android, ouvrez cette page :
-   **https://github.com/Babas50/rappel-medicaments/releases/latest**
+   **https://github.com/Babas50/Tic-Tac-Sant-/releases/latest**
 2. Dans la partie **Assets**, touchez **tic-tac-sante.apk**. Le téléchargement démarre.
 3. Ouvrez le fichier téléchargé (notification « Téléchargement terminé » ou application **Fichiers** > **Téléchargements**).
 4. Android affiche « Pour votre sécurité, l'installation d'applications inconnues est bloquée » :
