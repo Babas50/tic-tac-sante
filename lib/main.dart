@@ -69,7 +69,7 @@ class _RappelAppState extends State<RappelApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Rappel Médicaments',
+      title: 'Tic-Tac Santé',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       locale: const Locale('fr', 'FR'),

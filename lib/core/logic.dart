@@ -328,7 +328,7 @@ List<PlannedNotification> plannedNotifications(
     out.add(PlannedNotification(
       windowEndNotificationId,
       DateTime(end.year, end.month, end.day, 7, 30),
-      'Ouvrez Rappel Médicaments',
+      'Ouvrez Tic-Tac Santé',
       'Ouvrez l\'application pour que vos prochains rappels restent programmés.',
       '{}',
       withActions: false,

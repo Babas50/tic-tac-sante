@@ -46,7 +46,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   Icon(Icons.medication_rounded, size: 90, color: Colors.white),
                   SizedBox(height: 8),
-                  Text('Bienvenue !',
+                  Text('Bienvenue dans Tic-Tac Santé !',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white)),
                 ],

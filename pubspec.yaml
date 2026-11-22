@@ -1,5 +1,5 @@
 name: rappel_medicaments
-description: "Rappels de prise de médicaments, simples et fiables."
+description: "Tic-Tac Santé : rappels de prise de médicaments, simples et fiables."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

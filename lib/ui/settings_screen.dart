@@ -21,12 +21,12 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _backup(BuildContext context) async {
     try {
       final dir = await getTemporaryDirectory();
-      final name = 'rappel-medicaments-sauvegarde-${DateFormat('yyyy-MM-dd').format(DateTime.now())}.json';
+      final name = 'tic-tac-sante-sauvegarde-${DateFormat('yyyy-MM-dd').format(DateTime.now())}.json';
       final f = File('${dir.path}/$name');
       await f.writeAsString(store.exportBackup());
       await SharePlus.instance.share(ShareParams(
         files: [XFile(f.path, mimeType: 'application/json', name: name)],
-        subject: 'Sauvegarde Rappel Médicaments',
+        subject: 'Sauvegarde Tic-Tac Santé',
         title: 'Enregistrer la sauvegarde',
       ));
     } catch (e) {
@@ -135,7 +135,7 @@ class SettingsScreen extends StatelessWidget {
                   }
                 })),
             const SizedBox(height: 16),
-            _Pad(Text('Rappel Médicaments, application locale sans compte ni serveur.',
+            _Pad(Text('Tic-Tac Santé, application locale sans compte ni serveur.',
                 style: t.bodySmall, textAlign: TextAlign.center)),
           ],
         );

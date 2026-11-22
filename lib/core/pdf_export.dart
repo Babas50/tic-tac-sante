@@ -26,7 +26,7 @@ Future<Uint8List> buildDoctorPdf({
   final doc = pw.Document(
     title: 'Suivi des prises de médicaments',
     author: data.profile.name,
-    creator: 'Rappel Médicaments',
+    creator: 'Tic-Tac Santé',
   );
 
   const small = pw.TextStyle(fontSize: 9);
@@ -105,10 +105,12 @@ Future<Uint8List> buildDoctorPdf({
     footer: (ctx) => pw.Align(
       alignment: pw.Alignment.centerRight,
       child: pw.Text(
-          'Rappel Médicaments - édité le ${_d(generated)} - page ${ctx.pageNumber}/${ctx.pagesCount}',
+          'Tic-Tac Santé - édité le ${_d(generated)} - page ${ctx.pageNumber}/${ctx.pagesCount}',
           style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
     ),
     build: (ctx) => [
+      pw.Text('Tic-Tac Santé',
+          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.deepPurple700)),
       pw.Text('Suivi des prises de médicaments',
           style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 6),

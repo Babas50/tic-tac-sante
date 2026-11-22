@@ -63,7 +63,7 @@ class _ExportScreenState extends State<ExportScreen> {
     );
     final dir = await getTemporaryDirectory();
     final f = File(
-        '${dir.path}/suivi-medicaments-${DateFormat('yyyy-MM-dd').format(r.start)}-au-${DateFormat('yyyy-MM-dd').format(r.end)}.pdf');
+        '${dir.path}/tic-tac-sante-suivi-${DateFormat('yyyy-MM-dd').format(r.start)}-au-${DateFormat('yyyy-MM-dd').format(r.end)}.pdf');
     await f.writeAsBytes(bytes);
     return f;
   }
@@ -89,7 +89,7 @@ class _ExportScreenState extends State<ExportScreen> {
     try {
       final f = await _buildFile();
       final bytes = await f.readAsBytes();
-      await Printing.layoutPdf(onLayout: (_) async => bytes, name: 'Suivi médicaments');
+      await Printing.layoutPdf(onLayout: (_) async => bytes, name: 'Tic-Tac Santé - suivi');
     } catch (e) {
       if (mounted) showMessage(context, 'L\'impression a échoué : $e');
     } finally {

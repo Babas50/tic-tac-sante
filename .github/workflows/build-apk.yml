@@ -1,4 +1,4 @@
-name: Compiler l'APK
+name: Compiler l'APK Tic-Tac Santé
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
             echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
           fi
 
-      - name: Compiler l'APK
+      - name: Compiler l'APK Tic-Tac Santé
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -54,14 +54,14 @@ jobs:
           [ -z "$ANDROID_KEY_ALIAS" ] && unset ANDROID_KEY_ALIAS
           [ -z "$ANDROID_KEY_PASSWORD" ] && unset ANDROID_KEY_PASSWORD
           flutter build apk --release --build-number=${{ github.run_number }}
-          cp build/app/outputs/flutter-apk/app-release.apk rappel-medicaments.apk
+          cp build/app/outputs/flutter-apk/app-release.apk tic-tac-sante.apk
 
       - name: Version
         id: v
         run: |
           NAME=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
           echo "tag=v$NAME-build${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-          echo "name=Version $NAME (build ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
+          echo "name=Tic-Tac Santé $NAME (build ${{ github.run_number }})" >> "$GITHUB_OUTPUT"
 
       - name: Publier la Release
         uses: softprops/action-gh-release@v2
@@ -70,9 +70,9 @@ jobs:
           name: ${{ steps.v.outputs.name }}
           target_commitish: ${{ github.sha }}
           make_latest: true
-          files: rappel-medicaments.apk
+          files: tic-tac-sante.apk
           body: |
-            Téléchargez **rappel-medicaments.apk** ci-dessous et ouvrez-le sur votre téléphone Android.
+            Téléchargez **tic-tac-sante.apk** ci-dessous et ouvrez-le sur votre téléphone Android.
             Le mode d'emploi d'installation est dans le README du dépôt.
 
             Modifications : ${{ github.event.head_commit.message }}

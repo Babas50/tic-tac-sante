@@ -1,4 +1,4 @@
-# Rappel Médicaments
+# Tic-Tac Santé
 
 Application Android simple et colorée qui rappelle l'heure des médicaments. Elle fonctionne **sans internet, sans compte et sans serveur** : tout reste sur le téléphone.
 
@@ -16,14 +16,14 @@ Application Android simple et colorée qui rappelle l'heure des médicaments. El
 
 1. Sur le téléphone Android, ouvrez cette page :
    **https://github.com/Babas50/rappel-medicaments/releases/latest**
-2. Dans la partie **Assets**, touchez **rappel-medicaments.apk**. Le téléchargement démarre.
+2. Dans la partie **Assets**, touchez **tic-tac-sante.apk**. Le téléchargement démarre.
 3. Ouvrez le fichier téléchargé (notification « Téléchargement terminé » ou application **Fichiers** > **Téléchargements**).
 4. Android affiche « Pour votre sécurité, l'installation d'applications inconnues est bloquée » :
    - touchez **Paramètres** ;
    - activez **Autoriser cette source** (pour Chrome ou pour l'application Fichiers) ;
    - revenez en arrière et touchez **Installer**.
 5. Si Google Play Protect affiche un avertissement (« application non vérifiée »), touchez **Plus de détails** puis **Installer quand même**. C'est normal : l'application ne passe pas par le Play Store.
-6. Ouvrez **Rappel Médicaments** et suivez les 3 étapes du premier lancement.
+6. Ouvrez **Tic-Tac Santé** et suivez les 3 étapes du premier lancement.
 
 > Après l'installation, vous pouvez désactiver « Autoriser cette source » dans les paramètres : cela ne supprime pas l'application.
 
@@ -35,7 +35,7 @@ L'application demande trois autorisations. Touchez chaque bouton **Autoriser** e
 2. **Alarmes exactes** : pour sonner à la minute près (souvent déjà accordée).
 3. **Batterie / ne pas optimiser** : pour qu'Android ne bloque pas les rappels.
 
-Sur certains téléphones (Xiaomi, Huawei, Oppo, OnePlus, certains Samsung), il faut aussi aller dans **Paramètres > Applications > Rappel Médicaments > Batterie** et choisir **Sans restriction**, et activer le **démarrage automatique** s'il existe. Le site https://dontkillmyapp.com donne la marche à suivre par marque.
+Sur certains téléphones (Xiaomi, Huawei, Oppo, OnePlus, certains Samsung), il faut aussi aller dans **Paramètres > Applications > Tic-Tac Santé > Batterie** et choisir **Sans restriction**, et activer le **démarrage automatique** s'il existe. Le site https://dontkillmyapp.com donne la marche à suivre par marque.
 
 Pour vérifier : **Réglages > Tester une notification**, puis verrouillez le téléphone et attendez une minute.
 
@@ -58,7 +58,7 @@ flutter test                    # logique, PDF, et aucun texte coupé jusqu'à u
 flutter build apk --release
 ```
 
-À chaque envoi sur la branche `main`, GitHub Actions (`.github/workflows/build-apk.yml`) lance l'analyse et les tests, compile l'APK et publie une Release avec le fichier `rappel-medicaments.apk`.
+À chaque envoi sur la branche `main`, GitHub Actions (`.github/workflows/build-apk.yml`) lance l'analyse et les tests, compile l'APK et publie une Release avec le fichier `tic-tac-sante.apk`.
 
 Organisation du code :
 

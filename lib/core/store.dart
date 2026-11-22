@@ -219,7 +219,7 @@ class AppStore extends ChangeNotifier {
       throw const FormatException('Fichier illisible');
     }
     if (j['app'] != 'rappel-medicaments' || j['data'] == null) {
-      throw const FormatException('Ce fichier n\'est pas une sauvegarde de Rappel Médicaments');
+      throw const FormatException('Ce fichier n\'est pas une sauvegarde de Tic-Tac Santé');
     }
     final newData = AppData.fromJson(Map<String, dynamic>.from(j['data']));
     final newHistory = ((j['history'] ?? []) as List)
