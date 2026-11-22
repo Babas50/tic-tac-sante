@@ -42,7 +42,7 @@ class RemindersListScreen extends StatelessWidget {
                     final med = store.data.med(r.medId);
                     final s = momentStyle(momentOf(r.hour));
                     final when = r.type == ReminderType.daily
-                        ? 'Tous les jours'
+                        ? frequencyLabel(r)
                         : 'Le ${DateFormat('d MMMM yyyy', 'fr_FR').format(parseDateKey(r.date!))}';
                     return SoftCard(
                       color: r.active ? s.background : const Color(0xFFEDEDED),

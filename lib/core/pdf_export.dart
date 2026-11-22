@@ -10,9 +10,10 @@ import 'logic.dart';
 import 'models.dart';
 
 const _maxDetailRows = 25;
+const _maxManualRows = 15;
 
 String _d(DateTime d) => DateFormat('dd/MM/yyyy').format(d);
-String _dt(DateTime d) => DateFormat('dd/MM HH:mm').format(d);
+String _dt(DateTime d) => DateFormat('dd/MM/yy HH:mm').format(d);
 
 Future<Uint8List> buildDoctorPdf({
   required AppData data,
@@ -64,13 +65,17 @@ Future<Uint8List> buildDoctorPdf({
   for (final e in byMed.entries) {
     final med = data.med(e.key);
     final rs = e.value..sort((a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute));
-    final daily = rs.where((r) => r.type == ReminderType.daily).map((r) =>
-        '${formatQuantity(r.quantity, r.unit)} à ${hmOf(r.hour, r.minute)}');
+    // Regroupe les rappels récurrents par fréquence.
+    final byFreq = <String, List<String>>{};
+    for (final r in rs.where((r) => r.type == ReminderType.daily)) {
+      byFreq.putIfAbsent(frequencyLabel(r), () => []).add(
+          '${formatQuantity(r.quantity, r.unit)} à ${hmOf(r.hour, r.minute)}');
+    }
     final once = rs.where((r) => r.type == ReminderType.once).map((r) =>
         '${formatQuantity(r.quantity, r.unit)} le ${_d(parseDateKey(r.date!))} à ${hmOf(r.hour, r.minute)}');
     final poso = [
-      if (daily.isNotEmpty) 'Chaque jour : ${daily.join(', ')}',
-      if (once.isNotEmpty) 'Ponctuel : ${once.join(', ')}',
+      for (final f in byFreq.entries) '${f.key} : ${f.value.join(', ')}',
+      if (once.isNotEmpty) 'Une fois : ${once.join(', ')}',
     ].join('\n');
     final notes = [med?.description ?? '', med?.notes ?? '']
         .where((s) => s.trim().isNotEmpty)
@@ -182,11 +187,27 @@ Future<Uint8List> buildDoctorPdf({
                 style: small),
           ),
       ],
+      if (stats.manualList.isNotEmpty) ...[
+        pw.SizedBox(height: 12),
+        pw.Text('Prises ponctuelles (hors programme)', style: h2),
+        pw.SizedBox(height: 4),
+        table(['Date et heure', 'Médicament', 'Quantité'], [
+          for (final e in stats.manualList.take(_maxManualRows))
+            [_dt(e.actual ?? e.planned), e.medName, formatQuantity(e.quantity, e.unit)],
+        ], widths: {1: const pw.FlexColumnWidth(3)}),
+        if (stats.manualList.length > _maxManualRows)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 3),
+            child: pw.Text('... et ${stats.manualList.length - _maxManualRows} autres prises ponctuelles.',
+                style: small),
+          ),
+      ],
       pw.SizedBox(height: 10),
       pw.Text(
           'Données saisies par le patient dans l\'application. '
           'Une prise « en décalé » a eu lieu à plus de 30 minutes de l\'heure prévue. '
-          'Une prise est notée « oubliée » sans réponse 3 heures après l\'heure prévue.',
+          'Une prise est notée « oubliée » sans réponse 3 heures après l\'heure prévue. '
+          'Les prises ponctuelles ne comptent pas dans le taux de prises respectées.',
           style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
     ],
   ));

@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/logic.dart';
 import '../core/models.dart';
 import '../core/store.dart';
+import 'intake_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -38,7 +39,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final stats = computeStats(widget.store.history, from, now);
 
         final children = <Widget>[
-          const ScreenHeader('Historique', subtitle: 'Toutes vos prises, reports et oublis.'),
+          const ScreenHeader('Historique',
+              subtitle: 'Toutes vos prises, reports et oublis. Touchez une ligne pour la corriger.'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: BigButton('Ajouter une prise ponctuelle',
+                icon: Icons.add_task_rounded,
+                kind: BigButtonKind.outline,
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => IntakeScreen(store: widget.store)))),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Wrap(
@@ -91,7 +101,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Text('${label[0].toUpperCase()}${label.substring(1)}', style: t.titleLarge),
             ));
           }
-          children.add(_HistoryTile(h));
+          children.add(_HistoryTile(widget.store, h));
         }
         children.add(const SizedBox(height: 24));
         return ListView(children: children);
@@ -101,21 +111,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
 }
 
 class _HistoryTile extends StatelessWidget {
+  final AppStore store;
   final HistoryEntry h;
-  const _HistoryTile(this.h);
+  const _HistoryTile(this.store, this.h);
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final a = h.actual;
+    final otherDay = a != null && dateKey(a) != h.date;
     final (icon, color, label) = switch (h.status) {
+      HistoryStatus.pris when h.manual => (Icons.add_task_rounded, okGreen, 'Prise ponctuelle'),
       HistoryStatus.pris => (Icons.check_circle_rounded, okGreen,
-          'Pris à ${h.actual == null ? '?' : hm(h.actual!)}'),
+          'Pris ${a == null ? '' : otherDay ? 'le ${DateFormat('d/MM', 'fr_FR').format(a)} à ${hm(a)}' : 'à ${hm(a)}'}'),
       HistoryStatus.decale => (Icons.snooze_rounded, warnOrange,
           'Reporté à ${h.until == null ? '?' : hm(h.until!)}${h.actual == null ? '' : ' (demandé à ${hm(h.actual!)})'}'),
       HistoryStatus.oublie => (Icons.cancel_rounded, dangerRed, 'Oublié'),
     };
     return SoftCard(
       padding: const EdgeInsets.all(14),
+      onTap: () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => IntakeScreen(store: store, entry: h))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -125,7 +141,7 @@ class _HistoryTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${hm(h.planned)}  ${h.medName}', style: t.titleMedium),
+                Text('${hm(h.manual ? (a ?? h.planned) : h.planned)}  ${h.medName}', style: t.titleMedium),
                 Text(formatQuantity(h.quantity, h.unit), style: t.bodyMedium),
                 Text(label, style: t.bodyLarge!.copyWith(color: color, fontWeight: FontWeight.w800)),
                 if (h.once)
@@ -136,6 +152,7 @@ class _HistoryTile extends StatelessWidget {
               ],
             ),
           ),
+          const Icon(Icons.edit_rounded, size: 26, semanticLabel: 'Corriger'),
         ],
       ),
     );

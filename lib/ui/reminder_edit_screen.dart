@@ -28,6 +28,10 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
   double quantity = 1;
   String unit = 'comprimé';
   bool active = true;
+  _Freq freq = _Freq.daily;
+  int customDays = 4;
+  DateTime startDate = dayOnly(DateTime.now());
+  final Set<int> weekdays = {};
 
   bool get editing => widget.reminder != null;
 
@@ -43,6 +47,21 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
       quantity = r.quantity;
       unit = r.unit;
       active = r.active;
+      if (r.startDate != null) startDate = parseDateKey(r.startDate!);
+      weekdays.addAll(r.weekdays);
+      if (r.type == ReminderType.once) {
+        freq = _Freq.once;
+      } else if (r.repeat == Recurrence.weekdays) {
+        freq = _Freq.weekdays;
+      } else {
+        freq = switch (r.intervalDays) {
+          1 => _Freq.daily,
+          2 => _Freq.every2,
+          3 => _Freq.every3,
+          _ => _Freq.everyN,
+        };
+        if (r.intervalDays > 3) customDays = r.intervalDays;
+      }
     } else {
       medId = widget.medId ??
           (widget.store.data.meds.length == 1 ? widget.store.data.meds.first.id : null);
@@ -68,6 +87,20 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
       if (!times.contains(t)) times.add(t);
       times.sort((a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute));
     });
+  }
+
+  Future<void> _pickStart() async {
+    final today = dayOnly(DateTime.now());
+    final d = await showDatePicker(
+      context: context,
+      initialDate: startDate,
+      firstDate: today.subtract(const Duration(days: 365)),
+      lastDate: today.add(const Duration(days: 365)),
+      helpText: 'Premier jour de prise',
+      cancelText: 'Annuler',
+      confirmText: 'Valider',
+    );
+    if (d != null) setState(() => startDate = d);
   }
 
   Future<void> _pickDate() async {
@@ -99,7 +132,18 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
       showMessage(context, 'Ajoutez au moins une heure.');
       return;
     }
+    if (freq == _Freq.weekdays && weekdays.isEmpty) {
+      showMessage(context, 'Choisissez au moins un jour de la semaine.');
+      return;
+    }
     final store = widget.store;
+    type = freq == _Freq.once ? ReminderType.once : ReminderType.daily;
+    final interval = switch (freq) {
+      _Freq.every2 => 2,
+      _Freq.every3 => 3,
+      _Freq.everyN => customDays,
+      _ => 1,
+    };
     for (var i = 0; i < times.length; i++) {
       final t = times[i];
       final existing = (i == 0) ? widget.reminder : null;
@@ -113,8 +157,12 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
         quantity: quantity,
         unit: unit,
         active: active,
-        createdAt: existing?.createdAt ?? DateTime.now(),
+        createdAt: _createdAt(existing),
         nid: existing?.nid ?? store.takeNid(),
+        repeat: freq == _Freq.weekdays ? Recurrence.weekdays : Recurrence.interval,
+        intervalDays: interval,
+        startDate: interval > 1 ? dateKey(startDate) : null,
+        weekdays: freq == _Freq.weekdays ? (weekdays.toList()..sort()) : [],
       );
       await store.saveReminder(r);
     }
@@ -122,6 +170,18 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
     showMessage(context,
         times.length > 1 ? '${times.length} rappels enregistrés.' : 'Rappel enregistré.');
     Navigator.pop(context);
+  }
+
+  /// Un cycle « 1 jour sur N » qui démarre dans le passé doit pouvoir
+  /// s'appliquer dès aujourd'hui : la création ne doit pas être postérieure
+  /// au premier jour.
+  DateTime _createdAt(Reminder? existing) {
+    final now = DateTime.now();
+    final base = existing?.createdAt ?? now;
+    if (freq != _Freq.daily && freq != _Freq.once && startDate.isBefore(base)) {
+      return base.isBefore(dayOnly(now)) ? base : dayOnly(now);
+    }
+    return base;
   }
 
   Future<void> _delete() async {
@@ -156,7 +216,7 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
                       const FieldLabel('1. Quel médicament ?'),
                       if (meds.isEmpty)
                         Text('Votre bibliothèque est vide : ajoutez un médicament.', style: t.bodyLarge),
-                      for (final m in meds) _MedChoice(
+                      for (final m in meds) MedChoice(
                         med: m,
                         selected: m.id == medId,
                         onTap: () => setState(() => medId = m.id),
@@ -165,23 +225,62 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
                       BigButton('Nouveau médicament',
                           icon: Icons.add_rounded, kind: BigButtonKind.outline, onPressed: _newMed),
 
-                      const FieldLabel('2. Quand ?'),
-                      ButtonPair(
+                      const FieldLabel('2. À quelle fréquence ?'),
+                      for (final (f, label, icon) in const [
+                        (_Freq.daily, 'Tous les jours', Icons.repeat_rounded),
+                        (_Freq.every2, '1 jour sur 2', Icons.looks_two_rounded),
+                        (_Freq.every3, '1 jour sur 3', Icons.looks_3_rounded),
+                        (_Freq.everyN, 'Tous les ... jours', Icons.more_time_rounded),
+                        (_Freq.weekdays, 'Certains jours de la semaine', Icons.view_week_rounded),
+                        (_Freq.once, 'Une seule fois', Icons.event_rounded),
+                      ]) ...[
                         _Toggle(
-                          label: 'Tous les jours',
-                          icon: Icons.repeat_rounded,
-                          selected: type == ReminderType.daily,
-                          onTap: () => setState(() => type = ReminderType.daily),
+                          label: label,
+                          icon: icon,
+                          selected: freq == f,
+                          onTap: () => setState(() => freq = f),
                         ),
-                        _Toggle(
-                          label: 'Une seule fois',
-                          icon: Icons.event_rounded,
-                          selected: type == ReminderType.once,
-                          onTap: () => setState(() => type = ReminderType.once),
+                        const SizedBox(height: 8),
+                      ],
+                      if (freq == _Freq.everyN) ...[
+                        const SizedBox(height: 4),
+                        _Stepper(
+                          text: 'Tous les $customDays jours',
+                          onMinus: customDays > 2 ? () => setState(() => customDays--) : null,
+                          onPlus: customDays < 60 ? () => setState(() => customDays++) : null,
                         ),
-                      ),
-                      if (type == ReminderType.once) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
+                      ],
+                      if (freq == _Freq.every2 || freq == _Freq.every3 || freq == _Freq.everyN) ...[
+                        const SizedBox(height: 4),
+                        Text('Premier jour de prise :', style: t.bodyLarge),
+                        const SizedBox(height: 6),
+                        BigButton(
+                          DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(startDate),
+                          icon: Icons.calendar_month_rounded,
+                          kind: BigButtonKind.soft,
+                          color: brand,
+                          onPressed: _pickStart,
+                        ),
+                      ],
+                      if (freq == _Freq.weekdays) ...[
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (var d = 1; d <= 7; d++)
+                              FilterChip(
+                                label: Text(weekdayLong[d - 1], style: const TextStyle(fontSize: 19)),
+                                padding: const EdgeInsets.all(8),
+                                selected: weekdays.contains(d),
+                                onSelected: (v) => setState(() => v ? weekdays.add(d) : weekdays.remove(d)),
+                              ),
+                          ],
+                        ),
+                      ],
+                      if (freq == _Freq.once) ...[
+                        const SizedBox(height: 4),
                         BigButton(
                           'Le ${DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(onceDate)}',
                           icon: Icons.calendar_month_rounded,
@@ -237,7 +336,7 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
                           onPressed: () => _addTime()),
 
                       const FieldLabel('4. Quelle quantité ?'),
-                      _QuantityStepper(
+                      QuantityStepper(
                         quantity: quantity,
                         unit: unit,
                         onChanged: (q) => setState(() => quantity = q),
@@ -296,11 +395,44 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
   }
 }
 
-class _MedChoice extends StatelessWidget {
+enum _Freq { daily, every2, every3, everyN, weekdays, once }
+
+/// Valeur centrale avec boutons − et + (64 px).
+class _Stepper extends StatelessWidget {
+  final String text;
+  final VoidCallback? onMinus;
+  final VoidCallback? onPlus;
+  const _Stepper({required this.text, this.onMinus, this.onPlus});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget btn(IconData icon, String tip, VoidCallback? onTap) => SizedBox(
+          width: 64,
+          child: ElevatedButton(
+            onPressed: onTap,
+            style: ElevatedButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(64, 64)),
+            child: Icon(icon, size: 34, semanticLabel: tip),
+          ),
+        );
+    return Row(
+      children: [
+        btn(Icons.remove_rounded, 'Moins', onMinus),
+        Expanded(
+          child: Text(text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+        ),
+        btn(Icons.add_rounded, 'Plus', onPlus),
+      ],
+    );
+  }
+}
+
+class MedChoice extends StatelessWidget {
   final Medication med;
   final bool selected;
   final VoidCallback onTap;
-  const _MedChoice({required this.med, required this.selected, required this.onTap});
+  const MedChoice({super.key, required this.med, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -366,11 +498,11 @@ class _Toggle extends StatelessWidget {
   }
 }
 
-class _QuantityStepper extends StatelessWidget {
+class QuantityStepper extends StatelessWidget {
   final double quantity;
   final String unit;
   final ValueChanged<double> onChanged;
-  const _QuantityStepper({required this.quantity, required this.unit, required this.onChanged});
+  const QuantityStepper({super.key, required this.quantity, required this.unit, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {

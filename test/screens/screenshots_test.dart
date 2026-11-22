@@ -11,6 +11,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:rappel_medicaments/ui/export_screen.dart';
 import 'package:rappel_medicaments/ui/history_screen.dart';
 import 'package:rappel_medicaments/ui/home_shell.dart';
+import 'package:rappel_medicaments/ui/intake_screen.dart';
 import 'package:rappel_medicaments/ui/library_screen.dart';
 import 'package:rappel_medicaments/ui/onboarding_screen.dart';
 import 'package:rappel_medicaments/ui/reminder_edit_screen.dart';
@@ -42,11 +43,13 @@ void main() {
     'nouveau-rappel': () => ReminderEditScreen(store: makeStore(now), medId: 'm2'),
     'export': () => ExportScreen(store: makeStore(now)),
     'accueil': () => OnboardingScreen(store: makeStore(now)),
+    'prise-ponctuelle': () => IntakeScreen(store: makeStore(now)),
+    'corriger': () => IntakeScreen(store: makeStore(now), entry: makeStore(now).history.first),
   };
   for (final scale in [1.0, 1.6]) {
     for (final e in shots.entries) {
       testWidgets('capture ${e.key} x$scale', (tester) async {
-        tester.view.physicalSize = const Size(411 * 2, 1100 * 2);
+        tester.view.physicalSize = Size(411 * 2, (e.key == 'nouveau-rappel' ? 2400 : 1100) * 2.0);
         tester.view.devicePixelRatio = 2;
         addTearDown(tester.view.reset);
         await tester.pumpWidget(wrap(e.value(), scale));

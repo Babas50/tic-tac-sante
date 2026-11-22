@@ -37,7 +37,11 @@ class Medication {
       );
 }
 
+/// daily = rappel récurrent (voir [Reminder.repeat]), once = une seule fois.
 enum ReminderType { daily, once }
+
+/// Récurrence : tous les N jours, ou certains jours de la semaine.
+enum Recurrence { interval, weekdays }
 
 /// Rappel de prise : un médicament, une heure, une quantité.
 class Reminder {
@@ -57,6 +61,18 @@ class Reminder {
   /// Numéro unique servant à fabriquer les identifiants de notification.
   int nid;
 
+  /// Récurrence (rappels récurrents uniquement).
+  Recurrence repeat;
+
+  /// Tous les [intervalDays] jours (1 = tous les jours, 2 = 1 jour sur 2...).
+  int intervalDays;
+
+  /// Premier jour du cycle (AAAA-MM-JJ) pour « 1 jour sur N ».
+  String? startDate;
+
+  /// Jours de la semaine (1 = lundi ... 7 = dimanche).
+  List<int> weekdays;
+
   Reminder({
     required this.id,
     required this.medId,
@@ -69,9 +85,17 @@ class Reminder {
     this.active = true,
     required this.createdAt,
     required this.nid,
-  });
+    this.repeat = Recurrence.interval,
+    this.intervalDays = 1,
+    this.startDate,
+    List<int>? weekdays,
+  }) : weekdays = weekdays ?? [];
 
   Map<String, dynamic> toJson() => {
+        'repeat': repeat.name,
+        'intervalDays': intervalDays,
+        'startDate': startDate,
+        'weekdays': weekdays,
         'id': id,
         'medId': medId,
         'type': type.name,
@@ -97,8 +121,16 @@ class Reminder {
         active: (j['active'] ?? true) as bool,
         createdAt: DateTime.parse(j['createdAt'] as String),
         nid: j['nid'] as int,
+        // Valeurs par défaut = comportement de la version 1 (tous les jours).
+        repeat: j['repeat'] == 'weekdays' ? Recurrence.weekdays : Recurrence.interval,
+        intervalDays: ((j['intervalDays'] ?? 1) as int).clamp(1, 365),
+        startDate: j['startDate'] as String?,
+        weekdays: ((j['weekdays'] ?? []) as List).map((e) => e as int).toList(),
       );
 }
+
+/// Préfixe des prises ponctuelles saisies hors rappel.
+const manualPrefix = 'manual-';
 
 enum HistoryStatus { pris, decale, oublie }
 
@@ -139,6 +171,34 @@ class HistoryEntry {
   });
 
   String get key => occurrenceKey(reminderId, date);
+
+  /// Prise ponctuelle saisie à la main, hors rappel programmé.
+  bool get manual => reminderId.startsWith(manualPrefix);
+
+  HistoryEntry copyWith({
+    double? quantity,
+    String? unit,
+    String? date,
+    DateTime? planned,
+    DateTime? actual,
+    HistoryStatus? status,
+    String? medId,
+    String? medName,
+  }) =>
+      HistoryEntry(
+        id: id,
+        reminderId: reminderId,
+        medId: medId ?? this.medId,
+        medName: medName ?? this.medName,
+        quantity: quantity ?? this.quantity,
+        unit: unit ?? this.unit,
+        date: date ?? this.date,
+        planned: planned ?? this.planned,
+        actual: actual ?? this.actual,
+        status: status ?? this.status,
+        once: once,
+        until: until,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,

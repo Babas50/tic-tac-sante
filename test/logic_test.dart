@@ -147,4 +147,66 @@ void main() {
     expect(s.total.snoozed, 1);
     expect(percent(s.total.rate), '67 %');
   });
+
+  test('migration : un ancien rappel sans fréquence reste quotidien', () {
+    final r = Reminder.fromJson({
+      'id': 'x', 'medId': 'm', 'type': 'daily', 'hour': 8, 'minute': 0,
+      'quantity': 1, 'unit': 'comprimé', 'createdAt': '2026-01-01T00:00:00.000', 'nid': 9,
+    });
+    expect(r.repeat, Recurrence.interval);
+    expect(r.intervalDays, 1);
+    expect(frequencyLabel(r), 'Tous les jours');
+    expect(repeatsOn(r, DateTime(2026, 11, 22)), isTrue);
+  });
+
+  test('1 jour sur 2 et 1 jour sur 3 à partir du premier jour', () {
+    final now = DateTime(2026, 11, 22, 7, 0);
+    final data = sampleData(now);
+    final r = data.reminders.first
+      ..intervalDays = 2
+      ..startDate = '2026-11-20';
+    expect(frequencyLabel(r), '1 jour sur 2');
+    expect(repeatsOn(r, DateTime(2026, 11, 20)), isTrue);
+    expect(repeatsOn(r, DateTime(2026, 11, 21)), isFalse);
+    expect(repeatsOn(r, DateTime(2026, 11, 22)), isTrue);
+    expect(repeatsOn(r, DateTime(2026, 11, 19)), isFalse); // avant le début
+    r.intervalDays = 3;
+    expect(repeatsOn(r, DateTime(2026, 11, 23)), isTrue);
+    expect(repeatsOn(r, DateTime(2026, 11, 22)), isFalse);
+    // Pas de notification ni d'oubli les jours sans prise.
+    final plan = plannedNotifications(data, [], now);
+    expect(plan.any((p) => p.id == mainNotifId(1, '2026-11-22')), isFalse);
+    expect(plan.any((p) => p.id == mainNotifId(1, '2026-11-23')), isTrue);
+    final missed = sweepMissed(data, [], DateTime(2026, 11, 24, 23), days: 4, newId: _id)
+        .where((e) => e.reminderId == r.id)
+        .map((e) => e.date);
+    expect(missed, ['2026-11-20', '2026-11-23']);
+  });
+
+  test('certains jours de la semaine', () {
+    final data = sampleData(DateTime(2026, 11, 22));
+    final r = data.reminders.first
+      ..repeat = Recurrence.weekdays
+      ..weekdays = [1, 3, 5];
+    expect(frequencyLabel(r), 'Chaque lundi, mercredi et vendredi');
+    expect(repeatsOn(r, DateTime(2026, 11, 23)), isTrue); // lundi
+    expect(repeatsOn(r, DateTime(2026, 11, 24)), isFalse); // mardi
+    expect(repeatsOn(r, DateTime(2026, 11, 22)), isFalse); // dimanche
+  });
+
+  test('les prises ponctuelles sont listées mais hors taux', () {
+    final now = DateTime(2026, 11, 22, 23, 0);
+    final data = sampleData(now);
+    final occ = occurrencesOn(data, now);
+    final h = [
+      entry(occ[0], HistoryStatus.pris, actual: occ[0].planned),
+      HistoryEntry(id: 'man', reminderId: '${manualPrefix}man', medId: 'm1', medName: 'Doliprane',
+          quantity: 1, unit: 'comprimé', date: dateKey(now), planned: now, actual: now,
+          status: HistoryStatus.pris, once: true),
+    ];
+    final s = computeStats(h, now, now);
+    expect(s.total.planned, 1);
+    expect(s.manualList.length, 1);
+    expect(h[1].manual, isTrue);
+  });
 }

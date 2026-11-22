@@ -114,6 +114,35 @@ class Occurrence {
   String get medName => med?.name ?? 'Médicament supprimé';
 }
 
+/// Le rappel récurrent tombe-t-il ce jour-là ?
+bool repeatsOn(Reminder r, DateTime day) {
+  if (r.repeat == Recurrence.weekdays) {
+    return r.weekdays.isEmpty || r.weekdays.contains(day.weekday);
+  }
+  if (r.intervalDays <= 1) return true;
+  final start = r.startDate != null ? parseDateKey(r.startDate!) : r.createdAt;
+  final diff = epochDay(day) - epochDay(start);
+  return diff >= 0 && diff % r.intervalDays == 0;
+}
+
+const weekdayShort = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
+const weekdayLong = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+
+/// « Tous les jours », « 1 jour sur 2 », « Lundi, mercredi », « Le 24/11/2026 ».
+String frequencyLabel(Reminder r) {
+  if (r.type == ReminderType.once) {
+    final d = parseDateKey(r.date!);
+    return 'Le ${two(d.day)}/${two(d.month)}/${d.year}';
+  }
+  if (r.repeat == Recurrence.weekdays && r.weekdays.isNotEmpty && r.weekdays.length < 7) {
+    final days = [...r.weekdays]..sort();
+    final names = days.map((d) => weekdayLong[d - 1]).join(', ');
+    return 'Chaque ${names.replaceFirst(RegExp(r', (?=[^,]*$)'), ' et ')}';
+  }
+  if (r.repeat == Recurrence.weekdays || r.intervalDays <= 1) return 'Tous les jours';
+  return '1 jour sur ${r.intervalDays}';
+}
+
 DateTime plannedFor(Reminder r, String date) {
   final d = parseDateKey(date);
   return DateTime(d.year, d.month, d.day, r.hour, r.minute);
@@ -127,10 +156,11 @@ Occurrence? occurrenceOn(AppData data, Reminder r, DateTime day) {
     if (r.date != dk) return null;
   } else {
     final planned = plannedFor(r, dk);
-    // Un rappel quotidien commence à partir de sa création.
+    // Un rappel récurrent commence à partir de sa création.
     if (planned.isBefore(r.createdAt.subtract(const Duration(minutes: 1)))) {
       return null;
     }
+    if (!repeatsOn(r, day)) return null;
   }
   return Occurrence(r, data.med(r.medId), dk, plannedFor(r, dk));
 }
@@ -358,6 +388,7 @@ class PeriodStats {
   final Map<String, MedStats> byMed = {};
   final List<HistoryEntry> missedList = [];
   final List<HistoryEntry> lateList = [];
+  final List<HistoryEntry> manualList = [];
 }
 
 PeriodStats computeStats(List<HistoryEntry> history, DateTime from, DateTime to) {
@@ -366,8 +397,11 @@ PeriodStats computeStats(List<HistoryEntry> history, DateTime from, DateTime to)
   final inPeriod = history
       .where((h) => h.date.compareTo(fromK) >= 0 && h.date.compareTo(toK) <= 0)
       .toList();
-  final idx = indexHistory(inPeriod);
   final stats = PeriodStats();
+  // Les prises ponctuelles hors rappel ne comptent pas dans le taux.
+  stats.manualList.addAll(inPeriod.where((h) => h.manual));
+  stats.manualList.sort((a, b) => (a.actual ?? a.planned).compareTo(b.actual ?? b.planned));
+  final idx = indexHistory(inPeriod.where((h) => !h.manual).toList());
   final keys = idx.keys.toList()..sort();
   for (final k in keys) {
     final entries = idx[k]!;

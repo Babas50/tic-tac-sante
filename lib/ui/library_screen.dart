@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../core/logic.dart';
-import '../core/models.dart';
 import '../core/store.dart';
 import 'med_edit_screen.dart';
 import 'reminder_edit_screen.dart';
@@ -40,9 +39,8 @@ class LibraryScreen extends StatelessWidget {
             for (final m in meds)
               Builder(builder: (context) {
                 final rs = store.remindersOf(m.id);
-                final times = rs.where((r) => r.active).map((r) => r.type == ReminderType.daily
-                    ? hmOf(r.hour, r.minute)
-                    : '${hmOf(r.hour, r.minute)} le ${parseDateKey(r.date!).day}/${parseDateKey(r.date!).month}');
+                final times = rs.where((r) => r.active).map((r) =>
+                    '${hmOf(r.hour, r.minute)} (${frequencyLabel(r).toLowerCase()})');
                 return SoftCard(
                   onTap: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => MedEditScreen(store: store, med: m))),

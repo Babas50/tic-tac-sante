@@ -199,6 +199,59 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Prises ponctuelles et corrections -----------------------------------
+
+  /// Enregistre une prise faite hors rappel (date et heure au choix).
+  Future<void> addManualIntake(Medication med, double quantity, String unit, DateTime at) async {
+    final id = newId();
+    history.add(HistoryEntry(
+      id: id,
+      reminderId: '$manualPrefix$id',
+      medId: med.id,
+      medName: med.name,
+      quantity: quantity,
+      unit: unit,
+      date: dateKey(at),
+      planned: at,
+      actual: at,
+      status: HistoryStatus.pris,
+      once: true,
+    ));
+    await _saveHistory();
+    notifyListeners();
+  }
+
+  /// Remplace une ligne d'historique (correction de l'heure, de la quantité,
+  /// du statut...).
+  Future<void> updateEntry(HistoryEntry e) async {
+    final i = history.indexWhere((h) => h.id == e.id);
+    if (i < 0) return;
+    final old = history[i];
+    history[i] = e;
+    if (e.status == HistoryStatus.pris && !e.manual) {
+      // Une prise confirmée remplace un « oublié » de la même occurrence.
+      history.removeWhere((h) => h.id != e.id && h.key == e.key && h.status == HistoryStatus.oublie);
+    }
+    await _afterEntryChange(old);
+  }
+
+  Future<void> deleteEntry(HistoryEntry e) async {
+    history.removeWhere((h) => h.id == e.id);
+    await _afterEntryChange(e);
+  }
+
+  Future<void> _afterEntryChange(HistoryEntry e) async {
+    await _saveHistory();
+    // Les oublis peuvent réapparaître si une prise passée est supprimée.
+    final missed = sweepMissed(data, history, DateTime.now(), newId: newId);
+    if (missed.isNotEmpty) {
+      history.addAll(missed);
+      await _saveHistory();
+    }
+    if (!e.manual) await _reschedule();
+    notifyListeners();
+  }
+
   // --- Sauvegarde / restauration -------------------------------------------
 
   String exportBackup() => const JsonEncoder.withIndent(' ').convert({

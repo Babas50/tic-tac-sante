@@ -9,6 +9,7 @@ import 'package:rappel_medicaments/core/models.dart';
 import 'package:rappel_medicaments/core/store.dart';
 import 'package:rappel_medicaments/ui/export_screen.dart';
 import 'package:rappel_medicaments/ui/history_screen.dart';
+import 'package:rappel_medicaments/ui/intake_screen.dart';
 import 'package:rappel_medicaments/ui/home_shell.dart';
 import 'package:rappel_medicaments/ui/library_screen.dart';
 import 'package:rappel_medicaments/ui/med_edit_screen.dart';
@@ -69,6 +70,10 @@ void main() {
     'Tous les rappels': (s) => RemindersListScreen(store: s),
     'Export médecin': (s) => ExportScreen(store: s),
     'Premier lancement': (s) => OnboardingScreen(store: s),
+    'Prise ponctuelle': (s) => IntakeScreen(store: s),
+    'Corriger une prise': (s) => IntakeScreen(store: s, entry: s.history.first),
+    'Corriger un oubli': (s) => IntakeScreen(store: s, entry: s.history.last),
+    'Corriger un report': (s) => IntakeScreen(store: s, entry: s.history[1]),
   };
 
   for (final width in [320.0, 411.0]) {
@@ -96,6 +101,65 @@ void main() {
     expect(nav.top, greaterThan(600));
     expect(find.text('Nouveau rappel'), findsOneWidget);
     expect(tester.getRect(find.text('Nouveau rappel')).top, lessThan(400));
+  });
+
+  for (final label in ['1 jour sur 2', 'Tous les ... jours', 'Certains jours de la semaine', 'Une seule fois']) {
+    testWidgets('fréquence « $label » en police x2', (tester) async {
+      tester.view.physicalSize = const Size(320 * 2, 8000 * 2);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(wrap(ReminderEditScreen(store: makeStore(now), medId: 'm1'), 2.0));
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('enregistrer un rappel 1 jour sur 3', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 8000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final store = makeStore(now);
+    final r0 = store.data.reminders.first;
+    await tester.pumpWidget(wrap(ReminderEditScreen(store: store, reminder: r0), 1.0));
+    await tester.tap(find.text('1 jour sur 3'));
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer le rappel'));
+    await tester.pumpAndSettle();
+    final r = store.data.reminder(r0.id)!;
+    expect(r.intervalDays, 3);
+    expect(r.startDate, isNotNull);
+  });
+
+  testWidgets('enregistrer une prise ponctuelle', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 8000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final store = makeStore(now);
+    await tester.pumpWidget(wrap(IntakeScreen(store: store), 1.0));
+    await tester.tap(find.text('Kardégic 75'));
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer la prise'));
+    await tester.pumpAndSettle();
+    final m = store.history.where((h) => h.manual).toList();
+    expect(m.length, 1);
+    expect(m.first.medName, 'Kardégic 75');
+  });
+
+  testWidgets('corriger un oubli en prise', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 8000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final store = makeStore(now);
+    final missed = store.history.last;
+    await tester.pumpWidget(wrap(IntakeScreen(store: store, entry: missed), 1.0));
+    await tester.tap(find.text('Pris'));
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer la correction'));
+    await tester.pumpAndSettle();
+    final e = store.history.firstWhere((h) => h.id == missed.id);
+    expect(e.status, HistoryStatus.pris);
+    expect(e.actual, isNotNull);
   });
 
   testWidgets('premier lancement : les 3 étapes', (tester) async {

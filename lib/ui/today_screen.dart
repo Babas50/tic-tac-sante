@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/logic.dart';
 import '../core/store.dart';
+import 'intake_screen.dart';
 import 'reminder_edit_screen.dart';
 import 'reminders_list_screen.dart';
 import 'theme.dart';
@@ -33,6 +34,14 @@ class TodayScreen extends StatelessWidget {
                 onPressed: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => ReminderEditScreen(store: store)))),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+            child: BigButton('J\'ai pris un médicament hors rappel',
+                icon: Icons.add_task_rounded,
+                kind: BigButtonKind.outline,
+                onPressed: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => IntakeScreen(store: store)))),
+          ),
         ];
 
         if (occs.isEmpty) {
@@ -55,6 +64,35 @@ class TodayScreen extends StatelessWidget {
               store: store,
               occ: o,
               state: states[o.key]!,
+            ));
+          }
+        }
+        final manual = store.history
+            .where((h) => h.manual && h.date == dateKey(now))
+            .toList()
+          ..sort((a, b) => (a.actual ?? a.planned).compareTo(b.actual ?? b.planned));
+        if (manual.isNotEmpty) {
+          children.add(Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
+            child: Text('Prises ponctuelles', style: Theme.of(context).textTheme.titleLarge),
+          ));
+          for (final h in manual) {
+            children.add(SoftCard(
+              color: const Color(0xFFE6F4EA),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => IntakeScreen(store: store, entry: h))),
+              child: Row(
+                children: [
+                  MedAvatar(store.data.med(h.medId), size: 48),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                        '${hm(h.actual ?? h.planned)}  ${h.medName}\n${formatQuantity(h.quantity, h.unit)}',
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ),
+                  const Icon(Icons.edit_rounded, size: 26, semanticLabel: 'Corriger'),
+                ],
+              ),
             ));
           }
         }

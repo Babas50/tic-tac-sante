@@ -2,12 +2,13 @@
 
 Application Android simple et colorée qui rappelle l'heure des médicaments. Elle fonctionne **sans internet, sans compte et sans serveur** : tout reste sur le téléphone.
 
-- Rappels **tous les jours** ou **une seule fois**, à une ou plusieurs heures, avec la quantité de votre choix (½ comprimé, 2 gouttes...).
+- Rappels **tous les jours**, **1 jour sur 2**, **1 jour sur 3**, **tous les N jours**, **certains jours de la semaine** ou **une seule fois**, à une ou plusieurs heures, avec la quantité de votre choix (½ comprimé, 2 gouttes...).
 - Notification avec trois boutons : **Pris**, **Dans 30 min**, **Dans 1 h**. Dans l'application, on peut aussi reporter de 15 min ou 2 h.
 - **Relance automatique** 15 minutes plus tard si personne n'a répondu.
 - Alarmes à l'heure exacte, même téléphone en veille, et **reprogrammées après un redémarrage**.
 - **Bibliothèque** de médicaments (nom, descriptif, consignes comme le maximum par jour).
-- **Historique** : pris, reporté, oublié, ponctuel, avec heure prévue et heure réelle.
+- **Prises ponctuelles** hors rappel (par exemple contre une douleur), enregistrées avec la date et l'heure.
+- **Historique** : pris, reporté, oublié, ponctuel, avec heure prévue et heure réelle. Chaque ligne peut être **corrigée** (heure, date, quantité, pris ou oublié) ou supprimée.
 - **Export pour le médecin** : un PDF d'une à deux pages (nom, date de naissance, traitement en cours, taux de prises respectées) à envoyer par e-mail, enregistrer ou imprimer.
 - **Sauvegarde / restauration** de toutes les données dans un fichier.
 - Pensée pour les seniors : gros boutons, gros textes qui suivent la taille de police d'Android sans jamais être coupés, fort contraste, couleurs par moment de la journée.
