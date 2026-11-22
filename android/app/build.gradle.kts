@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "fr.babas50.rappel_medicaments"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
