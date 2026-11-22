@@ -30,22 +30,23 @@ android {
         versionName = flutter.versionName
     }
 
-    // Clé de signature fixe : indispensable pour pouvoir installer les mises à
-    // jour par-dessus l'ancienne version. Peut être remplacée par des secrets
-    // GitHub (voir README).
+    // Clé de signature fournie par les secrets GitHub (jamais dans le dépôt).
+    // Sans ces variables (compilation locale), la clé de debug est utilisée.
+    val ksPath = System.getenv("ANDROID_KEYSTORE_PATH")
     signingConfigs {
-        create("release") {
-            val ksPath = System.getenv("ANDROID_KEYSTORE_PATH") ?: "signing/release.jks"
-            storeFile = file(ksPath)
-            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "rappelmed"
-            keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "rappel"
-            keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: "rappelmed"
+        if (ksPath != null) {
+            create("release") {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName(if (ksPath != null) "release" else "debug")
         }
     }
 }

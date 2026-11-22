@@ -13,5 +13,3 @@ key.properties
 **/*.keystore
 **/*.jks
 
-# Clé de signature volontairement versionnée (voir README)
-!app/signing/release.jks
