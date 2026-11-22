@@ -42,15 +42,25 @@ jobs:
             echo "::error::Secrets de signature absents. Ajoutez ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS et ANDROID_KEY_PASSWORD dans Settings > Secrets and variables > Actions."
             exit 1
           fi
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          # Retire les espaces ou retours à la ligne collés par erreur.
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 
       - name: Compiler l'APK Tic-Tac Santé
         env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          # Retire les espaces ou retours à la ligne collés par erreur.
+          export ANDROID_KEYSTORE_PASSWORD=$(printf '%s' "$KS_PASS" | tr -d '[:space:]')
+          export ANDROID_KEY_ALIAS=$(printf '%s' "$KEY_ALIAS" | tr -d '[:space:]')
+          export ANDROID_KEY_PASSWORD=$(printf '%s' "$KEY_PASS" | tr -d '[:space:]')
+          # Vérifie la clé avant de compiler, avec un message clair.
+          if ! keytool -list -keystore "$ANDROID_KEYSTORE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::La clé ne s'ouvre pas : vérifiez les secrets ANDROID_KEYSTORE_PASSWORD (mot de passe), ANDROID_KEY_ALIAS (tictac) et ANDROID_KEYSTORE_BASE64."
+            exit 1
+          fi
           flutter build apk --release --build-number=${{ github.run_number }}
           cp build/app/outputs/flutter-apk/app-release.apk tic-tac-sante.apk
           rm -f "$RUNNER_TEMP/release.jks"
