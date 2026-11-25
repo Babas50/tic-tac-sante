@@ -40,12 +40,11 @@ class RemindersListScreen extends StatelessWidget {
                 for (final r in rs)
                   Builder(builder: (context) {
                     final med = store.data.med(r.medId);
-                    final s = momentStyle(momentOf(r.hour));
                     final when = r.type == ReminderType.daily
                         ? frequencyLabel(r)
                         : 'Le ${DateFormat('d MMMM yyyy', 'fr_FR').format(parseDateKey(r.date!))}';
                     return SoftCard(
-                      color: r.active ? s.background : const Color(0xFFEDEDED),
+                      color: r.active ? Colors.white : surfaceAlt,
                       onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -61,7 +60,7 @@ class RemindersListScreen extends StatelessWidget {
                               children: [
                                 Text(hmOf(r.hour, r.minute),
                                     style: TextStyle(
-                                        fontSize: 26, fontWeight: FontWeight.w900, color: s.accent)),
+                                        fontSize: 22, fontWeight: FontWeight.w700, color: brand)),
                                 Text(med?.name ?? 'Médicament supprimé', style: t.titleLarge),
                                 Text('${formatQuantity(r.quantity, r.unit)} · $when', style: t.bodyLarge),
                                 if (!r.active)

@@ -88,8 +88,15 @@ class AppStore extends ChangeNotifier {
 
   // --- Profil / accueil -----------------------------------------------------
 
-  Future<void> setProfile(String name, DateTime? birthDate) async {
-    data.profile = Profile(name: name.trim(), birthDate: birthDate);
+  Future<void> setProfile(String name, DateTime? birthDate,
+      {String? doctorName, String? doctorEmail}) async {
+    final old = data.profile;
+    data.profile = Profile(
+      name: name.trim(),
+      birthDate: birthDate,
+      doctorName: (doctorName ?? old.doctorName).trim(),
+      doctorEmail: (doctorEmail ?? old.doctorEmail).trim(),
+    );
     await _saveData();
     notifyListeners();
   }

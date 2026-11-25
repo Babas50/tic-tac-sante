@@ -161,10 +161,10 @@ class _MedEditScreenState extends State<MedEditScreen> {
                               width: 60,
                               height: 60,
                               decoration: BoxDecoration(
-                                color: i == iconIndex ? const Color(0xFFEDE5FF) : Colors.white,
+                                color: i == iconIndex ? brandSoft : Colors.white,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                    color: i == iconIndex ? brand : const Color(0xFF8A8A8A),
+                                    color: i == iconIndex ? brand : outlineColor,
                                     width: i == iconIndex ? 3 : 1.5),
                               ),
                               child: Icon(medIcons[i], size: 34, color: medColors[colorIndex]),

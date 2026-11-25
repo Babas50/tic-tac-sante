@@ -78,7 +78,7 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   const CircleAvatar(
                     radius: 28,
-                    backgroundColor: Color(0xFFEDE5FF),
+                    backgroundColor: brandSoft,
                     child: Icon(Icons.person_rounded, size: 34, color: brand),
                   ),
                   const SizedBox(width: 14),
@@ -92,6 +92,12 @@ class SettingsScreen extends StatelessWidget {
                               ? 'Date de naissance non renseignée'
                               : 'Né(e) le ${DateFormat('d MMMM yyyy', 'fr_FR').format(p.birthDate!)}',
                           style: t.bodyMedium,
+                        ),
+                        Text(
+                          p.doctorName.isEmpty && p.doctorEmail.isEmpty
+                              ? 'Médecin : non renseigné'
+                              : 'Médecin : ${p.doctorName.isNotEmpty ? p.doctorName : p.doctorEmail}',
+                          style: t.bodySmall,
                         ),
                       ],
                     ),

@@ -89,14 +89,15 @@ class _PermissionsPanelState extends State<PermissionsPanel> with WidgetsBinding
           onTap: () => _run(() => Permission.ignoreBatteryOptimizations.request()),
         ),
         SoftCard(
-          color: const Color(0xFFFFF1C2),
+          color: warnSoft,
+          borderColor: warnOrange,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.lightbulb_rounded, size: 32, color: Color(0xFF8A4B00)),
+                  const Icon(Icons.lightbulb_rounded, size: 32, color: warnOrange),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -135,7 +136,7 @@ class _PermCard extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final ok = granted == true;
     return SoftCard(
-      color: ok ? const Color(0xFFE6F4EA) : Colors.white,
+      color: ok ? okSoft : Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

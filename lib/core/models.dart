@@ -234,14 +234,21 @@ class HistoryEntry {
 
 String occurrenceKey(String reminderId, String date) => '$reminderId|$date';
 
-/// Profil affiché en en-tête du PDF pour le médecin.
+/// Profil affiché en en-tête du PDF pour le médecin, et coordonnées du
+/// médecin pour lui envoyer ce PDF par e-mail.
 class Profile {
   String name;
   DateTime? birthDate;
-  Profile({this.name = '', this.birthDate});
+  String doctorName;
+  String doctorEmail;
+  Profile({this.name = '', this.birthDate, this.doctorName = '', this.doctorEmail = ''});
 
-  Map<String, dynamic> toJson() =>
-      {'name': name, 'birthDate': birthDate?.toIso8601String()};
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'birthDate': birthDate?.toIso8601String(),
+        'doctorName': doctorName,
+        'doctorEmail': doctorEmail,
+      };
 
   factory Profile.fromJson(Map<String, dynamic>? j) => j == null
       ? Profile()
@@ -250,6 +257,8 @@ class Profile {
           birthDate: j['birthDate'] == null
               ? null
               : DateTime.parse(j['birthDate'] as String),
+          doctorName: (j['doctorName'] ?? '') as String,
+          doctorEmail: (j['doctorEmail'] ?? '') as String,
         );
 }
 

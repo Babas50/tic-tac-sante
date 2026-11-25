@@ -2,11 +2,26 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/logic.dart';
 
-const ink = Color(0xFF1A1A1A);
-const brand = Color(0xFF6A3DE8);
-const okGreen = Color(0xFF1B7A3A);
-const warnOrange = Color(0xFF9A4A00);
-const dangerRed = Color(0xFFB3261E);
+// Direction « Officine » : fond blanc, une seule couleur de marque (bleu-vert
+// pharmacie), vert réservé à « pris », ambre à « reporté », rouge à « oublié ».
+// Police Atkinson Hyperlegible, conçue pour les personnes malvoyantes.
+
+const appFont = 'AtkinsonHyperlegible';
+
+const ink = Color(0xFF13211F);
+const muted = Color(0xFF465755);
+const brand = Color(0xFF0D5C63);
+const brandSoft = Color(0xFFDCEDEC);
+const surface = Color(0xFFFFFFFF);
+const surfaceAlt = Color(0xFFEFF5F4);
+const lineColor = Color(0xFFD3DFDE);
+const outlineColor = Color(0xFF7E9593);
+const okGreen = Color(0xFF1B6B3D);
+const okSoft = Color(0xFFE3F3E9);
+const warnOrange = Color(0xFF874700);
+const warnSoft = Color(0xFFFFF0D4);
+const dangerRed = Color(0xFFA4261D);
+const dangerSoft = Color(0xFFFDE7E5);
 
 /// Hauteur minimale des boutons (exigence : 52 px minimum).
 const minButtonHeight = 56.0;
@@ -17,25 +32,32 @@ ThemeData buildTheme() {
     brightness: Brightness.light,
   ).copyWith(
     primary: brand,
+    onPrimary: Colors.white,
+    secondaryContainer: brandSoft,
+    onSecondaryContainer: brand,
     onSurface: ink,
-    surface: const Color(0xFFFFFBF5),
+    onSurfaceVariant: muted,
+    surface: surface,
+    outline: outlineColor,
+    outlineVariant: lineColor,
+    error: dangerRed,
   );
-  final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: 'Roboto');
+  final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: appFont);
   final text = base.textTheme.apply(bodyColor: ink, displayColor: ink).copyWith(
-        headlineSmall: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: ink),
-        titleLarge: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: ink),
-        titleMedium: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700, color: ink),
-        bodyLarge: const TextStyle(fontSize: 20, color: ink, height: 1.3),
-        bodyMedium: const TextStyle(fontSize: 18, color: ink, height: 1.3),
-        bodySmall: const TextStyle(fontSize: 16, color: ink, height: 1.3),
-        labelLarge: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-      ).apply(fontFamily: 'Roboto');
-  final buttonShape =
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(18));
+        headlineSmall: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: ink, height: 1.15),
+        titleLarge: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: ink, height: 1.2),
+        titleMedium: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: ink, height: 1.25),
+        bodyLarge: const TextStyle(fontSize: 19, color: ink, height: 1.35),
+        bodyMedium: const TextStyle(fontSize: 17, color: ink, height: 1.35),
+        bodySmall: const TextStyle(fontSize: 16, color: muted, height: 1.35),
+        labelLarge: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+      ).apply(fontFamily: appFont);
+  final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(14));
   const buttonPadding = EdgeInsets.symmetric(horizontal: 18, vertical: 14);
   return base.copyWith(
     textTheme: text,
-    scaffoldBackgroundColor: const Color(0xFFFFFBF5),
+    scaffoldBackgroundColor: surface,
+    dividerColor: lineColor,
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         minimumSize: const Size(64, minButtonHeight),
@@ -44,6 +66,7 @@ ThemeData buildTheme() {
         textStyle: text.labelLarge,
         backgroundColor: brand,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -52,8 +75,9 @@ ThemeData buildTheme() {
         padding: buttonPadding,
         shape: buttonShape,
         textStyle: text.labelLarge,
-        foregroundColor: ink,
-        side: const BorderSide(color: ink, width: 2),
+        foregroundColor: brand,
+        backgroundColor: Colors.white,
+        side: const BorderSide(color: brand, width: 2),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -64,24 +88,54 @@ ThemeData buildTheme() {
         foregroundColor: brand,
       ),
     ),
+    chipTheme: ChipThemeData(
+      backgroundColor: Colors.white,
+      selectedColor: brandSoft,
+      checkmarkColor: brand,
+      labelStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: ink, fontFamily: appFont),
+      side: const BorderSide(color: outlineColor, width: 1.5),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: brand,
+      foregroundColor: Colors.white,
+      extendedTextStyle: text.labelLarge,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      showDragHandle: true,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Colors.white : outlineColor),
+      trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? brand : surfaceAlt),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF555555), width: 1.5),
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: outlineColor, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: brand, width: 2.5),
       ),
-      hintStyle: const TextStyle(fontSize: 18, color: Color(0xFF5C5C5C)),
+      hintStyle: const TextStyle(fontSize: 18, color: muted),
     ),
     snackBarTheme: const SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      contentTextStyle: TextStyle(fontSize: 18, color: Colors.white),
+      backgroundColor: ink,
+      contentTextStyle: TextStyle(fontSize: 18, color: Colors.white, fontFamily: appFont),
     ),
   );
 }
@@ -96,11 +150,11 @@ class MomentStyle {
 }
 
 MomentStyle momentStyle(Moment m) => switch (m) {
-      Moment.matin => const MomentStyle(Color(0xFFFFF1C2), Color(0xFF8A4B00), Icons.wb_sunny_rounded),
-      Moment.midi => const MomentStyle(Color(0xFFFFE0CC), Color(0xFFA33100), Icons.light_mode_rounded),
-      Moment.apresMidi => const MomentStyle(Color(0xFFD9F3E3), Color(0xFF11603A), Icons.park_rounded),
-      Moment.soir => const MomentStyle(Color(0xFFEAE0FF), Color(0xFF4B23B8), Icons.wb_twilight_rounded),
-      Moment.nuit => const MomentStyle(Color(0xFFDCE5FF), Color(0xFF1D3A8F), Icons.bedtime_rounded),
+      Moment.matin => const MomentStyle(surfaceAlt, muted, Icons.wb_twilight_rounded),
+      Moment.midi => const MomentStyle(surfaceAlt, muted, Icons.wb_sunny_rounded),
+      Moment.apresMidi => const MomentStyle(surfaceAlt, muted, Icons.light_mode_rounded),
+      Moment.soir => const MomentStyle(surfaceAlt, muted, Icons.wb_twilight_rounded),
+      Moment.nuit => const MomentStyle(surfaceAlt, muted, Icons.bedtime_rounded),
     };
 
 const medColors = <Color>[

@@ -5,10 +5,12 @@ import '../core/store.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-/// Nom et date de naissance (utilisés dans l'en-tête du PDF médecin).
+/// Nom et date de naissance (utilisés dans l'en-tête du PDF médecin), et
+/// coordonnées du médecin pour lui envoyer ce PDF.
 class ProfileForm extends StatefulWidget {
   final AppStore store;
-  const ProfileForm({super.key, required this.store});
+  final bool showDoctor;
+  const ProfileForm({super.key, required this.store, this.showDoctor = false});
 
   @override
   State<ProfileForm> createState() => ProfileFormState();
@@ -18,14 +20,28 @@ class ProfileFormState extends State<ProfileForm> {
   late final TextEditingController name =
       TextEditingController(text: widget.store.data.profile.name);
   late DateTime? birth = widget.store.data.profile.birthDate;
+  late final TextEditingController doctorName =
+      TextEditingController(text: widget.store.data.profile.doctorName);
+  late final TextEditingController doctorEmail =
+      TextEditingController(text: widget.store.data.profile.doctorEmail);
 
   @override
   void dispose() {
     name.dispose();
+    doctorName.dispose();
+    doctorEmail.dispose();
     super.dispose();
   }
 
-  Future<void> save() => widget.store.setProfile(name.text, birth);
+  /// Faux si l'e-mail du médecin est mal écrit.
+  bool get emailOk {
+    final e = doctorEmail.text.trim();
+    return e.isEmpty || RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(e);
+  }
+
+  Future<void> save() => widget.store.setProfile(name.text, birth,
+      doctorName: widget.showDoctor ? doctorName.text : null,
+      doctorEmail: widget.showDoctor ? doctorEmail.text : null);
 
   Future<void> _pickBirth() async {
     final now = DateTime.now();
@@ -67,6 +83,25 @@ class ProfileFormState extends State<ProfileForm> {
           color: brand,
           onPressed: _pickBirth,
         ),
+        if (widget.showDoctor) ...[
+          const SizedBox(height: 10),
+          const FieldLabel('Votre médecin (facultatif)',
+              help: 'Pour lui envoyer le PDF de suivi par e-mail en un geste.'),
+          TextField(
+            controller: doctorName,
+            style: const TextStyle(fontSize: 20),
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Nom', hintText: 'ex. Dr Martin'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: doctorEmail,
+            style: const TextStyle(fontSize: 20),
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+            decoration: const InputDecoration(labelText: 'E-mail', hintText: 'ex. cabinet@exemple.fr'),
+          ),
+        ],
       ],
     );
   }
@@ -92,20 +127,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.only(bottom: 32),
           children: [
             const ScreenHeader('Mon profil',
-                subtitle: 'Ces informations apparaissent en haut du document pour le médecin.',
+                subtitle: 'Votre nom et votre date de naissance apparaissent en haut du document pour le médecin.',
                 showBack: true),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ProfileForm(key: key, store: store),
+                  ProfileForm(key: key, store: store, showDoctor: true),
                   const SizedBox(height: 28),
                   BigButton('Enregistrer',
                       icon: Icons.check_rounded,
                       kind: BigButtonKind.success,
                       onPressed: () async {
-                        await key.currentState?.save();
+                        final f = key.currentState;
+                        if (f != null && !f.emailOk) {
+                          showMessage(context, 'L\'e-mail du médecin semble incomplet.');
+                          return;
+                        }
+                        await f?.save();
                         if (context.mounted) Navigator.pop(context);
                       }),
                 ],

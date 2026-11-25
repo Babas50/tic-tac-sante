@@ -39,8 +39,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF5B2FD6), Color(0xFF9C2FB8)]),
-                borderRadius: BorderRadius.circular(28),
+                color: brand,
+                borderRadius: BorderRadius.circular(24),
               ),
               child: const Column(
                 children: [
@@ -48,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   SizedBox(height: 8),
                   Text('Bienvenue dans Tic-Tac Santé !',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white)),
+                      style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, color: Colors.white)),
                 ],
               ),
             ),

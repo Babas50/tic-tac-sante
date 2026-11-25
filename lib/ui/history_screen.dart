@@ -2,9 +2,9 @@ import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/logic.dart';
-import '../core/models.dart';
 import '../core/store.dart';
 import 'intake_screen.dart';
+import 'intake_sheet.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -39,49 +39,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final stats = computeStats(widget.store.history, from, now);
 
         final children = <Widget>[
-          const ScreenHeader('Historique',
-              subtitle: 'Toutes vos prises, reports et oublis. Touchez une ligne pour la corriger.'),
+          const ScreenHeader('Historique', subtitle: 'Touchez une ligne pour la corriger.'),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: BigButton('Ajouter une prise ponctuelle',
-                icon: Icons.add_task_rounded,
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Segmented<int>(
+              options: const [
+                (7, '7 jours', Icons.date_range_rounded),
+                (30, '30 jours', Icons.calendar_month_rounded),
+                (0, 'Tout', Icons.history_rounded),
+              ],
+              value: days,
+              onChanged: (d) => setState(() => days = d),
+            ),
+          ),
+          if (stats.total.planned > 0) _StatsCard(stats.total),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: BigButton('Ajouter une prise hors rappel',
+                icon: Icons.add_rounded,
                 kind: BigButtonKind.outline,
                 onPressed: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => IntakeScreen(store: widget.store)))),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final (label, d) in const [('7 jours', 7), ('30 jours', 30), ('Tout', 0)])
-                  ChoiceChip(
-                    label: Text(label, style: const TextStyle(fontSize: 19)),
-                    padding: const EdgeInsets.all(10),
-                    selected: days == d,
-                    onSelected: (_) => setState(() => days = d),
-                  ),
-              ],
-            ),
-          ),
-          if (stats.total.planned > 0)
-            SoftCard(
-              color: const Color(0xFFEDE5FF),
-              child: Row(
-                children: [
-                  const Icon(Icons.insights_rounded, size: 40, color: brand),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Prises respectées : ${percent(stats.total.rate)}\n'
-                      '${stats.total.taken} sur ${stats.total.planned}, ${stats.total.missed} oubli${stats.total.missed > 1 ? 's' : ''}',
-                      style: t.titleMedium,
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ];
 
         if (list.isEmpty) {
@@ -92,16 +71,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ));
         }
         String? currentDay;
+        final todayK = dateKey(now);
+        final yesterdayK = dateKey(dayOnly(now).subtract(const Duration(days: 1)));
         for (final h in list) {
           if (h.date != currentDay) {
             currentDay = h.date;
             final label = DateFormat('EEEE d MMMM', 'fr_FR').format(parseDateKey(h.date));
+            final prefix = h.date == todayK
+                ? 'Aujourd\'hui, '
+                : h.date == yesterdayK
+                    ? 'Hier, '
+                    : '';
+            final text = prefix.isEmpty ? '${label[0].toUpperCase()}${label.substring(1)}' : '$prefix$label';
             children.add(Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
-              child: Text('${label[0].toUpperCase()}${label.substring(1)}', style: t.titleLarge),
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
+              child: Text(text, style: t.titleMedium),
             ));
           }
-          children.add(_HistoryTile(widget.store, h));
+          children.add(CompactIntakeRow(
+            kind: entryKind(h),
+            time: hm(h.manual ? (h.actual ?? h.planned) : h.planned),
+            title: h.medName,
+            quantity: formatQuantity(h.quantity, h.unit),
+            detail: entryLabel(h),
+            onTap: () => showEntrySheet(context, widget.store, h),
+          ));
         }
         children.add(const SizedBox(height: 24));
         return ListView(children: children);
@@ -110,49 +104,50 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 }
 
-class _HistoryTile extends StatelessWidget {
-  final AppStore store;
-  final HistoryEntry h;
-  const _HistoryTile(this.store, this.h);
+class _StatsCard extends StatelessWidget {
+  final MedStats total;
+  const _StatsCard(this.total);
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final a = h.actual;
-    final otherDay = a != null && dateKey(a) != h.date;
-    final (icon, color, label) = switch (h.status) {
-      HistoryStatus.pris when h.manual => (Icons.add_task_rounded, okGreen, 'Prise ponctuelle'),
-      HistoryStatus.pris => (Icons.check_circle_rounded, okGreen,
-          'Pris ${a == null ? '' : otherDay ? 'le ${DateFormat('d/MM', 'fr_FR').format(a)} à ${hm(a)}' : 'à ${hm(a)}'}'),
-      HistoryStatus.decale => (Icons.snooze_rounded, warnOrange,
-          'Reporté à ${h.until == null ? '?' : hm(h.until!)}${h.actual == null ? '' : ' (demandé à ${hm(h.actual!)})'}'),
-      HistoryStatus.oublie => (Icons.cancel_rounded, dangerRed, 'Oublié'),
-    };
-    return SoftCard(
-      padding: const EdgeInsets.all(14),
-      onTap: () => Navigator.push(
-          context, MaterialPageRoute(builder: (_) => IntakeScreen(store: store, entry: h))),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final planned = total.planned;
+    final taken = total.taken;
+    final missed = total.missed;
+    final rate = total.rate;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: surfaceAlt, borderRadius: BorderRadius.circular(18)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(icon, color: color, size: 36),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${hm(h.manual ? (a ?? h.planned) : h.planned)}  ${h.medName}', style: t.titleMedium),
-                Text(formatQuantity(h.quantity, h.unit), style: t.bodyMedium),
-                Text(label, style: t.bodyLarge!.copyWith(color: color, fontWeight: FontWeight.w800)),
-                if (h.once)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Tag('Ponctuel'),
-                  ),
-              ],
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            spacing: 12,
+            children: [
+              Text(percent(rate),
+                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: brand, height: 1.1)),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Text('des prises respectées', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: rate.clamp(0, 1),
+              minHeight: 10,
+              backgroundColor: Colors.white,
+              valueColor: const AlwaysStoppedAnimation(brand),
             ),
           ),
-          const Icon(Icons.edit_rounded, size: 26, semanticLabel: 'Corriger'),
+          const SizedBox(height: 10),
+          Text(
+              '$taken prise${taken > 1 ? 's' : ''} sur $planned · $missed oubli${missed > 1 ? 's' : ''}'
+              '${total.snoozed == 0 ? '' : ' · ${total.snoozed} report${total.snoozed > 1 ? 's' : ''}'}',
+              style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );

@@ -16,7 +16,7 @@ import 'package:rappel_medicaments/ui/library_screen.dart';
 import 'package:rappel_medicaments/ui/onboarding_screen.dart';
 import 'package:rappel_medicaments/ui/reminder_edit_screen.dart';
 
-import '../ui_test.dart' show makeStore, wrap;
+import '../ui_test.dart' show makeStore, sampleDoc, wrap;
 
 Future<void> loadFont(String family, List<String> files) async {
   final loader = FontLoader(family);
@@ -33,6 +33,8 @@ void main() {
     await loadFont('Roboto', ['$fonts/Roboto-Regular.ttf', '$fonts/Roboto-Medium.ttf',
       '$fonts/Roboto-Bold.ttf', '$fonts/Roboto-Black.ttf']);
     await loadFont('MaterialIcons', ['$fonts/MaterialIcons-Regular.otf']);
+    await loadFont('AtkinsonHyperlegible',
+        ['assets/fonts/AtkinsonHyperlegible-Regular.ttf', 'assets/fonts/AtkinsonHyperlegible-Bold.ttf']);
   });
 
   final now = DateTime(2026, 11, 22, 12, 40);
@@ -42,6 +44,7 @@ void main() {
     'historique': () => Scaffold(body: SafeArea(child: HistoryScreen(store: makeStore(now)))),
     'nouveau-rappel': () => ReminderEditScreen(store: makeStore(now), medId: 'm2'),
     'export': () => ExportScreen(store: makeStore(now)),
+    'pdf-enregistre': () => ExportScreen(store: makeStore(now), initialDoc: sampleDoc()),
     'accueil': () => OnboardingScreen(store: makeStore(now)),
     'prise-ponctuelle': () => IntakeScreen(store: makeStore(now)),
     'corriger': () => IntakeScreen(store: makeStore(now), entry: makeStore(now).history.first),

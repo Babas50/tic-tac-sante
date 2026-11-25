@@ -1,9 +1,12 @@
 // Vérifie qu'aucun écran ne déborde (texte coupé ou qui dépasse) avec une
 // grande taille de police Android, sur un petit écran.
 
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:rappel_medicaments/core/documents.dart';
 import 'package:rappel_medicaments/core/logic.dart';
 import 'package:rappel_medicaments/core/models.dart';
 import 'package:rappel_medicaments/core/store.dart';
@@ -74,6 +77,7 @@ void main() {
     'Corriger une prise': (s) => IntakeScreen(store: s, entry: s.history.first),
     'Corriger un oubli': (s) => IntakeScreen(store: s, entry: s.history.last),
     'Corriger un report': (s) => IntakeScreen(store: s, entry: s.history[1]),
+    'PDF enregistré': (s) => ExportScreen(store: s, initialDoc: sampleDoc()),
   };
 
   for (final width in [320.0, 411.0]) {
@@ -99,8 +103,11 @@ void main() {
     await tester.pumpWidget(wrap(HomeShell(store: makeStore(now)), 1.0));
     final nav = tester.getRect(find.text('Réglages'));
     expect(nav.top, greaterThan(600));
-    expect(find.text('Nouveau rappel'), findsOneWidget);
-    expect(tester.getRect(find.text('Nouveau rappel')).top, lessThan(400));
+    // Le bouton « J'ai pris un médicament » flotte au-dessus des onglets.
+    expect(find.text('J\'ai pris un médicament'), findsOneWidget);
+    final fab = tester.getRect(find.text('J\'ai pris un médicament'));
+    expect(fab.bottom, lessThan(nav.top));
+    expect(fab.top, greaterThan(400));
   });
 
   for (final label in ['1 jour sur 2', 'Tous les ... jours', 'Certains jours de la semaine', 'Une seule fois']) {
@@ -183,7 +190,9 @@ void main() {
     addTearDown(tester.view.reset);
     final store = makeStore(now);
     store.history.clear();
-    await tester.pumpWidget(wrap(Scaffold(body: TodayScreen(store: store)), 1.0));
+    // 12:40 : la prise de 12:30 est à prendre.
+    final noon = DateTime(now.year, now.month, now.day, 12, 40);
+    await tester.pumpWidget(wrap(Scaffold(body: TodayScreen(store: store, clock: () => noon)), 1.0));
     final before = store.history.where((h) => h.status == HistoryStatus.pris).length;
     await tester.tap(find.text('J\'ai pris').first);
     await tester.pump();
@@ -201,4 +210,56 @@ void main() {
       expect(tester.getSize(find.byWidget(el.widget)).height, greaterThanOrEqualTo(52));
     }
   });
+
+  testWidgets('une prise validée est une ligne sans bouton ; on l\'annule en deux gestes', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 6000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final store = makeStore(now);
+    final noon = DateTime(now.year, now.month, now.day, 12, 40);
+    await tester.pumpWidget(wrap(Scaffold(body: TodayScreen(store: store, clock: () => noon)), 1.0));
+    final taken = store.history.firstWhere((h) => h.id == 'h1');
+    // Plus de bouton « Annuler » sur la ligne.
+    expect(find.textContaining('Annuler'), findsNothing);
+    await tester.tap(find.textContaining('Pris à ${hm(taken.actual!)}'));
+    await tester.pumpAndSettle();
+    expect(find.text('Corriger l\'heure ou la quantité'), findsOneWidget);
+    await tester.tap(find.text('Je ne l\'ai pas pris'));
+    await tester.pumpAndSettle();
+    expect(store.history.any((h) => h.id == 'h1'), isFalse);
+  });
+
+  testWidgets('historique : toucher un oubli propose « En fait, je l\'ai pris »', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 6000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final store = makeStore(now);
+    await tester.pumpWidget(wrap(Scaffold(body: HistoryScreen(store: store)), 1.0));
+    await tester.tap(find.textContaining('Oublié').first);
+    await tester.pumpAndSettle();
+    expect(find.text('En fait, je l\'ai pris'), findsOneWidget);
+    await tester.tap(find.text('En fait, je l\'ai pris'));
+    await tester.pumpAndSettle();
+    expect(find.text('Enregistrer la correction'), findsOneWidget);
+  });
+
+  testWidgets('prise hors rappel : rappel de la dernière prise et de la consigne', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 6000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final store = makeStore(now);
+    final t = DateTime.now().subtract(const Duration(minutes: 30));
+    await store.addManualIntake(store.data.meds.first, 1, 'comprimé', t);
+    await tester.pumpWidget(wrap(IntakeScreen(store: store), 1.0));
+    await tester.tap(find.text(store.data.meds.first.name));
+    await tester.pump();
+    expect(find.text('Dernière prise aujourd\'hui à ${hm(t)}'), findsOneWidget);
+    expect(find.textContaining('Votre consigne : 3 maximum par jour'), findsOneWidget);
+  });
+}
+
+SavedDoc sampleDoc() {
+  final dir = Directory.systemTemp.createTempSync('tts');
+  final f = File('${dir.path}/tic-tac-sante-suivi-2026-10-24-au-2026-11-22.pdf')..writeAsBytesSync(List.filled(2048, 0));
+  return SavedDoc(f, 'content://exemple/1', DateTime(2026, 11, 22));
 }

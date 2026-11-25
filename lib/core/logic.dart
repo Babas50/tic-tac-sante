@@ -442,3 +442,25 @@ PeriodStats computeStats(List<HistoryEntry> history, DateTime from, DateTime to)
 }
 
 String percent(double r) => '${(r * 100).round()} %';
+
+/// Dernière prise confirmée d'un médicament le jour de [now] (rappel ou prise
+/// hors rappel), pour rappeler l'écart avant une nouvelle prise.
+HistoryEntry? lastTakenOn(List<HistoryEntry> history, String medId, DateTime now) {
+  HistoryEntry? best;
+  final day = dateKey(now);
+  for (final h in history) {
+    final a = h.actual;
+    if (h.medId != medId || h.status != HistoryStatus.pris || a == null) continue;
+    if (dateKey(a) != day || a.isAfter(now)) continue;
+    if (best == null || a.isAfter(best.actual!)) best = h;
+  }
+  return best;
+}
+
+/// « 2 h 12 », « 45 min ».
+String durationLabel(Duration d) {
+  final h = d.inHours;
+  final m = d.inMinutes % 60;
+  if (h == 0) return '$m min';
+  return m == 0 ? '$h h' : '$h h ${m.toString().padLeft(2, '0')}';
+}

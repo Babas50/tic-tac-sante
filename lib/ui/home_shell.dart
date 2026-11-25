@@ -64,7 +64,7 @@ class _BottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      elevation: 8,
+      shape: const Border(top: BorderSide(color: lineColor)),
       child: SafeArea(
         top: false,
         child: Row(
@@ -87,13 +87,13 @@ class _BottomNav extends StatelessWidget {
                         children: [
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
                             decoration: BoxDecoration(
-                              color: i == index ? brand : Colors.transparent,
+                              color: i == index ? brandSoft : Colors.transparent,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Icon(items[i].icon,
-                                size: 30, color: i == index ? Colors.white : ink),
+                                size: 28, color: i == index ? brand : muted),
                           ),
                           const SizedBox(height: 4),
                           FittedBox(
@@ -102,8 +102,8 @@ class _BottomNav extends StatelessWidget {
                               items[i].label,
                               style: TextStyle(
                                 fontSize: 16,
-                                color: ink,
-                                fontWeight: i == index ? FontWeight.w800 : FontWeight.w500,
+                                color: i == index ? brand : muted,
+                                fontWeight: i == index ? FontWeight.w700 : FontWeight.w400,
                               ),
                             ),
                           ),
