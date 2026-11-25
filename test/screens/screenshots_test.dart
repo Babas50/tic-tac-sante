@@ -16,7 +16,12 @@ import 'package:rappel_medicaments/ui/library_screen.dart';
 import 'package:rappel_medicaments/ui/onboarding_screen.dart';
 import 'package:rappel_medicaments/ui/reminder_edit_screen.dart';
 
-import '../ui_test.dart' show makeStore, sampleDoc, wrap;
+import 'package:rappel_medicaments/core/logic.dart';
+import 'package:rappel_medicaments/core/models.dart';
+import 'package:rappel_medicaments/core/store.dart';
+import 'package:rappel_medicaments/ui/import_screen.dart';
+
+import '../ui_test.dart' show makeStore, sampleDoc, samplePlan, wrap;
 
 Future<void> loadFont(String family, List<String> files) async {
   final loader = FontLoader(family);
@@ -48,11 +53,19 @@ void main() {
     'accueil': () => OnboardingScreen(store: makeStore(now)),
     'prise-ponctuelle': () => IntakeScreen(store: makeStore(now)),
     'corriger': () => IntakeScreen(store: makeStore(now), entry: makeStore(now).history.first),
+    'importer': () => ImportScreen(store: makeStore(now)),
+    'verifier-import': () {
+      final s = makeStore(now);
+      return ImportPreviewScreen(store: s, plan: samplePlan(s), fileName: 'mes-medicaments.xlsx');
+    },
+    'historique-ponctuelle': () =>
+        Scaffold(body: SafeArea(child: HistoryScreen(store: withExtra(makeStore(now), now)))),
+    'aujourdhui-ponctuelle': () => HomeShell(store: withExtra(makeStore(now), now)),
   };
   for (final scale in [1.0, 1.6]) {
     for (final e in shots.entries) {
       testWidgets('capture ${e.key} x$scale', (tester) async {
-        tester.view.physicalSize = Size(411 * 2, (e.key == 'nouveau-rappel' ? 2400 : 1100) * 2.0);
+        tester.view.physicalSize = Size(411 * 2, (e.key == 'nouveau-rappel' || e.key == 'verifier-import' ? 2400 : 1100) * 2.0);
         tester.view.devicePixelRatio = 2;
         addTearDown(tester.view.reset);
         await tester.pumpWidget(wrap(e.value(), scale));
@@ -62,4 +75,13 @@ void main() {
       });
     }
   }
+}
+
+/// Ajoute une prise ponctuelle (hors rappel) à 10:15.
+AppStore withExtra(AppStore s, DateTime now) {
+  final at = DateTime(now.year, now.month, now.day, 10, 15);
+  s.history.add(HistoryEntry(
+      id: 'x1', reminderId: '${manualPrefix}x1', medId: 'm2', medName: 'Kardégic 75', quantity: 1,
+      unit: 'sachet', date: dateKey(at), planned: at, actual: at, status: HistoryStatus.pris, once: true));
+  return s;
 }

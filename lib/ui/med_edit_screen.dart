@@ -1,8 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:intl/intl.dart';
+
+import '../core/logic.dart';
 import '../core/models.dart';
 import '../core/storage.dart';
 import '../core/store.dart';
+import 'reminder_edit_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -11,7 +15,10 @@ import 'widgets.dart';
 class MedEditScreen extends StatefulWidget {
   final AppStore store;
   final Medication? med;
-  const MedEditScreen({super.key, required this.store, this.med});
+
+  /// Nom proposé pour un nouveau médicament (ex. depuis la recherche).
+  final String? initialName;
+  const MedEditScreen({super.key, required this.store, this.med, this.initialName});
 
   @override
   State<MedEditScreen> createState() => _MedEditScreenState();
@@ -28,7 +35,7 @@ class _MedEditScreenState extends State<MedEditScreen> {
   void initState() {
     super.initState();
     final m = widget.med;
-    name = TextEditingController(text: m?.name ?? '');
+    name = TextEditingController(text: m?.name ?? widget.initialName ?? '');
     description = TextEditingController(text: m?.description ?? '');
     notes = TextEditingController(text: m?.notes ?? '');
     colorIndex = m?.colorIndex ?? widget.store.data.meds.length % medColors.length;
@@ -74,6 +81,59 @@ class _MedEditScreenState extends State<MedEditScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+  /// Rappels du médicament, avec « Créer un rappel ».
+  Widget _reminders(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return ListenableBuilder(
+      listenable: widget.store,
+      builder: (context, _) {
+        final rs = widget.store.remindersOf(widget.med!.id);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const FieldLabel('Rappels'),
+            if (rs.isEmpty) Text('Aucun rappel pour ce médicament.', style: t.bodyLarge),
+            for (final r in rs)
+              SoftCard(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+                color: r.active ? Colors.white : surfaceAlt,
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => ReminderEditScreen(store: widget.store, reminder: r))),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(hmOf(r.hour, r.minute),
+                              style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700, color: brand)),
+                          Text(
+                              '${formatQuantity(r.quantity, r.unit)} · ${r.type == ReminderType.daily ? frequencyLabel(r) : 'Le ${DateFormat('d MMMM yyyy', 'fr_FR').format(parseDateKey(r.date!))}'}',
+                              style: t.bodyLarge),
+                          if (!r.active)
+                            const Padding(padding: EdgeInsets.only(top: 4), child: Tag('En pause', color: ink)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, size: 30, color: muted, semanticLabel: 'Modifier'),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 4),
+            BigButton('Créer un rappel',
+                icon: Icons.add_alarm_rounded,
+                kind: BigButtonKind.outline,
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => ReminderEditScreen(store: widget.store, medId: widget.med!.id)))),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final preview = Medication(id: '', name: '', colorIndex: colorIndex, iconIndex: iconIndex);
@@ -115,6 +175,7 @@ class _MedEditScreenState extends State<MedEditScreen> {
                     textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(hintText: 'ex. 3 maximum par jour, pendant le repas'),
                   ),
+                  if (widget.med != null) _reminders(context),
                   const FieldLabel('Couleur'),
                   Wrap(
                     spacing: 12,

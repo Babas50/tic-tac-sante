@@ -23,6 +23,13 @@ const warnSoft = Color(0xFFFFF0D4);
 const dangerRed = Color(0xFFA4261D);
 const dangerSoft = Color(0xFFFDE7E5);
 
+// Prise ponctuelle (hors rappel) : jaune pastel, contour doré, texte brun
+// (contraste 8,4:1 sur le fond jaune).
+const extraSoft = Color(0xFFFFF6CC);
+const extraLine = Color(0xFFC9A227);
+const extraInk = Color(0xFF5A4500);
+const extraTag = Color(0xFFF2D66B);
+
 /// Hauteur minimale des boutons (exigence : 52 px minimum).
 const minButtonHeight = 56.0;
 

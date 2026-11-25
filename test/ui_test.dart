@@ -8,10 +8,12 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:rappel_medicaments/core/documents.dart';
 import 'package:rappel_medicaments/core/logic.dart';
+import 'package:rappel_medicaments/core/med_import.dart';
 import 'package:rappel_medicaments/core/models.dart';
 import 'package:rappel_medicaments/core/store.dart';
 import 'package:rappel_medicaments/ui/export_screen.dart';
 import 'package:rappel_medicaments/ui/history_screen.dart';
+import 'package:rappel_medicaments/ui/import_screen.dart';
 import 'package:rappel_medicaments/ui/intake_screen.dart';
 import 'package:rappel_medicaments/ui/home_shell.dart';
 import 'package:rappel_medicaments/ui/library_screen.dart';
@@ -44,6 +46,14 @@ AppStore makeStore(DateTime now) {
   return AppStore.memory(data, history);
 }
 
+/// Plan d'import tiré du fichier d'exemple des tests (doublon, oubli de nom,
+/// quantité incomprise, exemple du modèle...).
+ImportPlan samplePlan(AppStore s) {
+  final bytes = File('test/fixtures/import_sample.xlsx').readAsBytesSync();
+  final existing = [...s.data.meds, Medication(id: 'mx', name: 'Doliprane 1000 mg')];
+  return buildImportPlan(readTable(bytes, 'x.xlsx'), existing);
+}
+
 Widget wrap(Widget child, double scale) => MaterialApp(
       theme: buildTheme(),
       locale: const Locale('fr', 'FR'),
@@ -60,6 +70,7 @@ void main() {
   setUpAll(() => initializeDateFormatting('fr_FR'));
 
   final now = DateTime.now();
+  extraTests(now);
   final screens = <String, Widget Function(AppStore)>{
     'Accueil (onglets)': (s) => HomeShell(store: s),
     'Aujourd\'hui': (s) => Scaffold(body: TodayScreen(store: s)),
@@ -78,6 +89,9 @@ void main() {
     'Corriger un oubli': (s) => IntakeScreen(store: s, entry: s.history.last),
     'Corriger un report': (s) => IntakeScreen(store: s, entry: s.history[1]),
     'PDF enregistré': (s) => ExportScreen(store: s, initialDoc: sampleDoc()),
+    'Importer une liste': (s) => ImportScreen(store: s),
+    'Vérifier avant d\'importer': (s) => ImportPreviewScreen(
+        store: s, plan: samplePlan(s), fileName: 'mes-medicaments-de-la-pharmacie.xlsx'),
   };
 
   for (final width in [320.0, 411.0]) {
@@ -262,4 +276,66 @@ SavedDoc sampleDoc() {
   final dir = Directory.systemTemp.createTempSync('tts');
   final f = File('${dir.path}/tic-tac-sante-suivi-2026-10-24-au-2026-11-22.pdf')..writeAsBytesSync(List.filled(2048, 0));
   return SavedDoc(f, 'content://exemple/1', DateTime(2026, 11, 22));
+}
+
+void extraTests(DateTime now) {
+  testWidgets('recherche dans les médicaments, sans tenir compte des accents', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 2000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(wrap(Scaffold(body: LibraryScreen(store: makeStore(now))), 1.0));
+    expect(find.text('Collyre'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'karde');
+    await tester.pump();
+    expect(find.text('1 résultat'), findsOneWidget);
+    expect(find.text('Collyre'), findsNothing);
+    expect(find.textContaining('gic 75', findRichText: true), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'xyz');
+    await tester.pump();
+    expect(find.text('Aucun médicament ne contient « xyz »'), findsOneWidget);
+    expect(find.text('Ajouter « xyz »'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('la fiche d\'un médicament liste ses rappels', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 3000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final store = makeStore(now);
+    await tester.pumpWidget(wrap(MedEditScreen(store: store, med: store.data.meds.first), 1.0));
+    expect(find.text('Rappels'), findsOneWidget);
+    expect(find.text('Créer un rappel'), findsOneWidget);
+  });
+
+  testWidgets('vérifier avant d\'importer, puis importer', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 4000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final store = makeStore(now);
+    final plan = samplePlan(store);
+    final before = store.data.meds.length;
+    await tester.pumpWidget(wrap(ImportPreviewScreen(store: store, plan: plan, fileName: 'x.xlsx'), 1.0));
+    expect(find.text('Ligne 5'), findsOneWidget); // nom vide
+    expect(find.text('Garder'), findsOneWidget);
+    expect(find.text('Importer 4 médicaments'), findsOneWidget);
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Importer 4 médicaments'));
+      for (var i = 0; i < 20 && store.data.meds.length == before; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    });
+    await tester.pumpAndSettle();
+    expect(store.data.meds.length, before + 4);
+  });
+
+  testWidgets('une prise ponctuelle est signalée dans l\'historique', (tester) async {
+    tester.view.physicalSize = const Size(411 * 2, 3000 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final store = makeStore(now);
+    await store.addManualIntake(store.data.meds.first, 1, 'comprimé', now.subtract(const Duration(minutes: 5)));
+    await tester.pumpWidget(wrap(Scaffold(body: HistoryScreen(store: store)), 2.0));
+    expect(find.text('PONCTUELLE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

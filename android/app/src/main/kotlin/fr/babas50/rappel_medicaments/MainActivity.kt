@@ -14,7 +14,7 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
 /**
- * Canal « documents » : copie du PDF médecin dans Téléchargements (Android 10
+ * Canal « documents » : copie du PDF médecin (ou du modèle d'import Excel) dans Téléchargements (Android 10
  * et plus, sans autorisation), puis ouverture ou envoi par e-mail de ce
  * fichier.
  */
@@ -28,26 +28,29 @@ class MainActivity : FlutterActivity() {
                         "saveToDownloads" -> {
                             val path = call.argument<String>("path")
                             val name = call.argument<String>("name")
+                            val mime = call.argument<String>("mime") ?: "application/pdf"
                             if (path == null || name == null) {
                                 result.error("args", "Chemin ou nom manquant", null)
                             } else {
-                                result.success(saveToDownloads(File(path), name))
+                                result.success(saveToDownloads(File(path), name, mime))
                             }
                         }
                         "open" -> {
                             val uri = Uri.parse(call.argument<String>("uri") ?: "")
+                            val mime = call.argument<String>("mime") ?: "application/pdf"
                             val view = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(uri, "application/pdf")
+                                setDataAndType(uri, mime)
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
-                            startActivity(Intent.createChooser(view, "Ouvrir le PDF"))
+                            startActivity(Intent.createChooser(view, "Ouvrir le document"))
                             result.success(true)
                         }
                         "email" -> {
                             val uri = Uri.parse(call.argument<String>("uri") ?: "")
                             val to = call.argument<String>("to")
+                            val mime = call.argument<String>("mime") ?: "application/pdf"
                             val send = Intent(Intent.ACTION_SEND).apply {
-                                type = "application/pdf"
+                                type = mime
                                 putExtra(Intent.EXTRA_STREAM, uri)
                                 if (to != null) putExtra(Intent.EXTRA_EMAIL, arrayOf(to))
                                 putExtra(Intent.EXTRA_SUBJECT, call.argument<String>("subject") ?: "")
@@ -71,12 +74,12 @@ class MainActivity : FlutterActivity() {
     }
 
     /** Copie [file] dans Téléchargements et renvoie son adresse content://, ou null avant Android 10. */
-    private fun saveToDownloads(file: File, name: String): String? {
+    private fun saveToDownloads(file: File, name: String, mime: String): String? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
         val resolver = applicationContext.contentResolver
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-            put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+            put(MediaStore.MediaColumns.MIME_TYPE, mime)
             put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }

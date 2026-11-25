@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import 'logic.dart';
+import 'med_import.dart';
 import 'models.dart';
 import 'notifications.dart' as notifs;
 import 'storage.dart';
@@ -157,6 +158,59 @@ class AppStore extends ChangeNotifier {
     await _saveData();
     await _reschedule();
     notifyListeners();
+  }
+
+  // --- Import d'une liste --------------------------------------------------
+
+  /// Crée (ou remplace) les médicaments et rappels du plan d'import, en une
+  /// seule fois. Renvoie le nombre de médicaments ajoutés ou remplacés.
+  Future<int> applyImport(ImportPlan plan, {DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    final today = dateKey(at);
+    var n = 0;
+    for (final m in plan.toImport) {
+      final Medication med;
+      if (m.existing != null) {
+        med = m.existing!;
+        if (m.description.isNotEmpty) med.description = m.description;
+        if (m.notes.isNotEmpty) med.notes = m.notes;
+        if (m.reminders.isNotEmpty) data.reminders.removeWhere((r) => r.medId == med.id);
+      } else {
+        med = Medication(
+          id: newId(),
+          name: m.name,
+          description: m.description,
+          notes: m.notes,
+          colorIndex: data.meds.length % 8,
+          iconIndex: iconForUnit(m.reminders.isEmpty ? '' : m.reminders.first.unit),
+        );
+        data.meds.add(med);
+      }
+      for (final r in m.reminders) {
+        data.reminders.add(Reminder(
+          id: newId(),
+          medId: med.id,
+          type: ReminderType.daily,
+          hour: r.hour,
+          minute: r.minute,
+          quantity: r.quantity,
+          unit: r.unit,
+          createdAt: at,
+          nid: takeNid(),
+          repeat: r.repeat,
+          intervalDays: r.interval,
+          startDate: r.interval > 1 ? today : null,
+          weekdays: [...r.weekdays],
+        ));
+      }
+      n++;
+    }
+    data.meds.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    data.reminders.sort((a, b) => (a.hour * 60 + a.minute).compareTo(b.hour * 60 + b.minute));
+    await _saveData();
+    await _reschedule();
+    notifyListeners();
+    return n;
   }
 
   // --- Prises ---------------------------------------------------------------

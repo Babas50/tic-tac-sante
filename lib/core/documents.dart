@@ -35,6 +35,9 @@ class SavedDoc {
   }
 }
 
+const pdfMime = 'application/pdf';
+const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
 class Documents {
   static const _channel = MethodChannel('fr.babas50.tictac/documents');
 
@@ -59,13 +62,13 @@ class Documents {
 
   /// Enregistre le PDF. Renvoie le document, copié dans Téléchargements quand
   /// Android le permet ([SavedDoc.downloadsUri] non nul).
-  static Future<SavedDoc> save(List<int> bytes, String name) async {
+  static Future<SavedDoc> save(List<int> bytes, String name, {String mime = pdfMime}) async {
     final dir = await _dir();
     final file = File('${dir.path}/$name');
     await file.writeAsBytes(bytes, flush: true);
     String? uri;
     try {
-      uri = await _channel.invokeMethod<String>('saveToDownloads', {'path': file.path, 'name': name});
+      uri = await _channel.invokeMethod<String>('saveToDownloads', {'path': file.path, 'name': name, 'mime': mime});
     } catch (_) {
       uri = null; // Android 9 et moins, ou tests : le fichier reste dans l'appli.
     }
@@ -91,21 +94,23 @@ class Documents {
   }
 
   /// Ouvre le PDF dans le lecteur du téléphone. Faux si impossible.
-  static Future<bool> open(SavedDoc d) async {
+  static Future<bool> open(SavedDoc d, {String mime = pdfMime}) async {
     if (d.downloadsUri == null) return false;
     try {
-      return await _channel.invokeMethod<bool>('open', {'uri': d.downloadsUri}) ?? false;
+      return await _channel.invokeMethod<bool>('open', {'uri': d.downloadsUri, 'mime': mime}) ?? false;
     } catch (_) {
       return false;
     }
   }
 
   /// Ouvre l'appli de messagerie avec le PDF joint. Faux si impossible.
-  static Future<bool> email(SavedDoc d, {String? to, required String subject, required String body}) async {
+  static Future<bool> email(SavedDoc d,
+      {String? to, required String subject, required String body, String mime = pdfMime}) async {
     if (d.downloadsUri == null) return false;
     try {
       return await _channel.invokeMethod<bool>('email', {
             'uri': d.downloadsUri,
+            'mime': mime,
             'to': (to == null || to.trim().isEmpty) ? null : to.trim(),
             'subject': subject,
             'body': body,

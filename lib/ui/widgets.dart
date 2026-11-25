@@ -323,7 +323,7 @@ enum IntakeKind { taken, extra, snoozed, missed, due, upcoming }
 
 ({Color color, Color soft, IconData icon}) kindStyle(IntakeKind k) => switch (k) {
       IntakeKind.taken => (color: okGreen, soft: okSoft, icon: Icons.check_rounded),
-      IntakeKind.extra => (color: brand, soft: brandSoft, icon: Icons.add_rounded),
+      IntakeKind.extra => (color: extraInk, soft: extraSoft, icon: Icons.add_rounded),
       IntakeKind.snoozed => (color: warnOrange, soft: warnSoft, icon: Icons.schedule_rounded),
       IntakeKind.missed => (color: dangerRed, soft: dangerSoft, icon: Icons.close_rounded),
       IntakeKind.due => (color: warnOrange, soft: warnSoft, icon: Icons.notifications_active_rounded),
@@ -367,10 +367,14 @@ class StatusDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final k = kindStyle(kind);
     final filled = kind == IntakeKind.taken;
+    final extra = kind == IntakeKind.extra;
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(color: filled ? okGreen : k.soft, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+          color: filled ? okGreen : (extra ? Colors.white : k.soft),
+          shape: BoxShape.circle,
+          border: extra ? Border.all(color: extraLine, width: 1.5) : null),
       child: Icon(k.icon, size: size * 0.6, color: filled ? Colors.white : k.color),
     );
   }
@@ -397,12 +401,20 @@ class CompactIntakeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final k = kindStyle(kind);
+    final extra = kind == IntakeKind.extra;
     // Police très grande : l'heure passe au-dessus du nom pour garder la place.
     final big = MediaQuery.textScalerOf(context).scale(10) / 10 > 1.3;
-    const timeStyle = TextStyle(
-        fontSize: 19, fontWeight: FontWeight.w700, color: muted, fontFeatures: [FontFeature.tabularFigures()]);
+    final timeStyle = TextStyle(
+        fontSize: 19,
+        fontWeight: FontWeight.w700,
+        color: extra ? extraInk : muted,
+        fontFeatures: const [FontFeature.tabularFigures()]);
     return SoftCard(
-      color: kind == IntakeKind.taken || kind == IntakeKind.extra ? surfaceAlt : Colors.white,
+      // Prise ponctuelle : fond jaune, contour doré et étiquette, pour la
+      // distinguer des traitements réguliers sans dépendre de la couleur seule.
+      color: extra ? extraSoft : (kind == IntakeKind.taken ? surfaceAlt : Colors.white),
+      borderColor: extra ? extraLine : null,
+      borderWidth: extra ? 1.5 : 1,
       padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       onTap: onTap,
@@ -418,6 +430,7 @@ class CompactIntakeRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (big) Text(time, style: timeStyle),
+                  if (extra) const PonctuelTag(),
                   Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.25)),
                   Text.rich(TextSpan(children: [
                     if (quantity != null) TextSpan(text: '$quantity · '),
@@ -426,12 +439,26 @@ class CompactIntakeRow extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, size: 30, color: muted, semanticLabel: 'Détail'),
+            Icon(Icons.chevron_right_rounded, size: 30, color: extra ? extraInk : muted, semanticLabel: 'Détail'),
           ],
         ),
       ),
     );
   }
+}
+
+/// Étiquette « PONCTUELLE » d'une prise hors rappel.
+class PonctuelTag extends StatelessWidget {
+  const PonctuelTag({super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+        decoration: BoxDecoration(color: extraTag, borderRadius: BorderRadius.circular(20)),
+        child: const Text('PONCTUELLE',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: extraInk, letterSpacing: 0.3)),
+      );
 }
 
 /// Choix exclusif sur une ligne (ou empilé si la place manque).

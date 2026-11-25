@@ -6,14 +6,15 @@ Application Android simple et sobre qui rappelle l'heure des médicaments. Elle 
 - Notification avec trois boutons : **Pris**, **Dans 30 min**, **Dans 1 h**. Dans l'application, on peut aussi reporter de 15 min ou 2 h.
 - **Relance automatique** 15 minutes plus tard si personne n'a répondu.
 - Alarmes à l'heure exacte, même téléphone en veille, et **reprogrammées après un redémarrage**.
-- **Bibliothèque** de médicaments (nom, descriptif, consignes comme le maximum par jour).
+- **Mes médicaments** : une ligne courte par médicament (nom et heures des rappels), avec une **recherche** qui ignore accents et majuscules (« levo » trouve Lévothyrox). Le descriptif, les consignes et les rappels sont dans la fiche du médicament.
+- **Importer une liste** de médicaments préparée sur ordinateur (Excel ou CSV), à partir d'un modèle fourni par l'appli, avec vérification avant import.
 - **Écran Aujourd'hui** : un « pilulier » montre d'un coup d'œil les prises de la journée (une case par prise). Une prise validée devient une ligne compacte, sans bouton : impossible de l'annuler par erreur.
-- **J'ai pris un médicament** (bouton en bas de l'écran Aujourd'hui) : une prise en plus, hors rappel (par exemple contre une douleur). L'appli rappelle l'heure de la dernière prise du jour et la consigne du médicament (« espacer de 6 heures »...).
+- **J'ai pris un médicament** (bouton en bas de l'écran Aujourd'hui) : une prise en plus, hors rappel (par exemple contre une douleur). Ces prises ponctuelles s'affichent sur fond jaune avec l'étiquette « PONCTUELLE », sur Aujourd'hui comme dans l'Historique. L'appli rappelle l'heure de la dernière prise du jour et la consigne du médicament (« espacer de 6 heures »...).
 - **Corriger en deux gestes** : touchez une prise (sur Aujourd'hui ou dans l'Historique) pour ouvrir son détail, puis « Corriger l'heure ou la quantité », « Je ne l'ai pas pris » ou, pour un oubli, « En fait, je l'ai pris ».
 - **Historique** : pris, prise en plus, oublié (un report n'y figure, comme dans le rapport PDF, que si la prise a finalement été oubliée ; une prise reportée puis confirmée apparaît simplement comme prise), avec heure prévue et heure réelle, taux de prises respectées sur 7 jours, 30 jours ou depuis le début.
 - **Export pour le médecin** : « Créer le PDF » enregistre un document d'une à deux pages (nom, date de naissance, traitement en cours, taux de prises respectées) dans **Téléchargements**. Ensuite : **envoyer au médecin par e-mail** (PDF déjà joint), partager autrement, ouvrir ou imprimer. Les documents déjà créés restent listés.
 - **Sauvegarde / restauration** de toutes les données dans un fichier.
-- Pensée pour les seniors : gros boutons (56 px), gros textes qui suivent la taille de police d'Android sans jamais être coupés, fort contraste, police **Atkinson Hyperlegible** (conçue pour les personnes malvoyantes, intégrée à l'appli), une seule couleur principale et un code couleur constant pour les statuts : vert = pris, ambre = reporté, rouge = oublié, toujours accompagné d'une icône et d'un texte.
+- Pensée pour les seniors : gros boutons (56 px), gros textes qui suivent la taille de police d'Android sans jamais être coupés, fort contraste, police **Atkinson Hyperlegible** (conçue pour les personnes malvoyantes, intégrée à l'appli), une seule couleur principale et un code couleur constant pour les statuts : vert = pris, jaune = prise ponctuelle, ambre = reporté, rouge = oublié, toujours accompagné d'une icône et d'un texte.
 
 ## Installer l'application sur le téléphone
 
@@ -48,6 +49,24 @@ Dans **Réglages > Mon profil**, renseignez le nom et l'e-mail de votre médecin
 
 Sur Android 9 ou plus ancien, le PDF reste dans l'application (pas de copie dans Téléchargements) et l'envoi passe par le menu de partage.
 
+### Importer une liste de médicaments
+
+1. **Médicaments > Importer**, puis **M'envoyer par e-mail** (ou **Télécharger le modèle**) pour récupérer le fichier `modele-tic-tac-sante.xlsx`.
+2. Sur un ordinateur, ouvrez-le avec Excel, LibreOffice ou Google Sheets et remplissez l'onglet **Mes médicaments**, une ligne par médicament. L'onglet **Mode d'emploi** explique chaque colonne :
+
+| Colonne | Obligatoire | Exemple |
+|---|---|---|
+| Médicament | oui | Doliprane 1000 mg |
+| Description | non | Paracétamol, douleur |
+| Consigne | non | 3 maximum par jour |
+| Heures de prise | non (vide = pas de rappel) | 08:00 ; 20:00 |
+| Quantité | non (vide = 1) | 1,5 |
+| Unité | non (vide = comprimé) | goutte |
+| Fréquence | non (vide = tous les jours) | 1 jour sur 2, ou Lundi, Jeudi |
+
+   Liste dans Word : copiez le tableau et collez-le dans le modèle en case A2 (l'appli ne lit pas les fichiers Word directement). Les lignes d'exemple laissées telles quelles sont ignorées.
+3. Renvoyez le fichier sur le téléphone (e-mail, Drive...), puis **Choisir le fichier**. L'écran **Vérifier avant d'importer** montre ce qui sera ajouté, les lignes ignorées ou à compléter, et les médicaments déjà présents (**Garder** ou **Remplacer**). Rien n'est enregistré avant **Importer**, et une sauvegarde de sécurité est faite juste avant.
+
 ### Mettre à jour
 
 Téléchargez le nouvel APK depuis la même page et installez-le par-dessus : les données sont conservées. Par précaution, faites d'abord **Réglages > Sauvegarder mes données**.
@@ -72,9 +91,10 @@ flutter build apk --release
 
 Organisation du code :
 
-- `lib/core/` : modèles, logique (occurrences, oublis, statistiques), stockage local, notifications, PDF, documents exportés (`documents.dart`).
-- `lib/ui/` : écrans (Aujourd'hui, Médicaments, Historique, Réglages, Nouveau rappel, Export...). `theme.dart` regroupe les couleurs et la police, `widgets.dart` les composants communs (lignes de prise, pastilles de statut, choix segmentés), `intake_sheet.dart` le panneau de détail d'une prise.
-- `android/.../MainActivity.kt` : canal `fr.babas50.tictac/documents` (copie du PDF dans Téléchargements via MediaStore, ouverture, envoi par e-mail avec pièce jointe).
+- `lib/core/` : modèles, logique (occurrences, oublis, statistiques), stockage local, notifications, PDF, documents exportés (`documents.dart`), import Excel/CSV (`med_import.dart`, lecture .xlsx sans dépendance lourde via `archive` et `xml`).
+- `lib/ui/` : écrans (Aujourd'hui, Médicaments, Historique, Réglages, Nouveau rappel, Export...). `theme.dart` regroupe les couleurs et la police, `widgets.dart` les composants communs (lignes de prise, pastilles de statut, choix segmentés), `intake_sheet.dart` le panneau de détail d'une prise, `import_screen.dart` l'import d'une liste.
+- `android/.../MainActivity.kt` : canal `fr.babas50.tictac/documents` (copie du PDF ou du modèle Excel dans Téléchargements via MediaStore, ouverture, envoi par e-mail avec pièce jointe).
+- `assets/import/modele-tic-tac-sante.xlsx` : modèle d'import, généré par `python3 tool/make_import_template.py` (openpyxl). Ses lignes d'exemple doivent rester identiques à `templateExamples` dans `med_import.dart`.
 - `assets/fonts/` : police Atkinson Hyperlegible (Braille Institute, licence SIL OFL 1.1, voir `OFL.txt`).
 - `test/` : tests unitaires et tests d'affichage en grande police.
 
