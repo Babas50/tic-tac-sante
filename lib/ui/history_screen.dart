@@ -30,7 +30,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ? DateTime(2000)
             : dayOnly(now).subtract(Duration(days: days - 1));
         final fromK = dateKey(from);
-        final list = widget.store.history.where((h) => h.date.compareTo(fromK) >= 0).toList()
+        final list = visibleHistory(widget.store.history).where((h) => h.date.compareTo(fromK) >= 0).toList()
           ..sort((a, b) {
             final c = b.date.compareTo(a.date);
             if (c != 0) return c;
@@ -146,7 +146,7 @@ class _StatsCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
               '$taken prise${taken > 1 ? 's' : ''} sur $planned · $missed oubli${missed > 1 ? 's' : ''}'
-              '${total.snoozed == 0 ? '' : ' · ${total.snoozed} report${total.snoozed > 1 ? 's' : ''}'}',
+              '${total.snoozed == 0 ? '' : ' (dont ${total.snoozed} après report)'}',
               style: Theme.of(context).textTheme.bodySmall),
         ],
       ),

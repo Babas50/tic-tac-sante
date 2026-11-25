@@ -378,7 +378,7 @@ class MedStats {
   int onTime = 0;
   int late = 0;
   int missed = 0;
-  int snoozed = 0; // occurrences décalées au moins une fois
+  int snoozed = 0; // oublis précédés d'au moins un report (un report suivi d'une prise n'est pas compté)
   MedStats(this.medName);
   double get rate => planned == 0 ? 0 : taken / planned;
 }
@@ -413,7 +413,7 @@ PeriodStats computeStats(List<HistoryEntry> history, DateTime from, DateTime to)
     if (taken.isEmpty && !missed) continue; // occurrence pas encore terminée
     for (final t in [s, stats.total]) {
       t.planned++;
-      if (snoozed) t.snoozed++;
+      if (snoozed && taken.isEmpty) t.snoozed++;
       if (taken.isNotEmpty) {
         t.taken++;
         final e = taken.first;
@@ -439,6 +439,18 @@ PeriodStats computeStats(List<HistoryEntry> history, DateTime from, DateTime to)
   stats.missedList.sort((a, b) => a.planned.compareTo(b.planned));
   stats.lateList.sort((a, b) => a.planned.compareTo(b.planned));
   return stats;
+}
+
+/// Entrées à afficher dans l'historique : un report n'apparaît que si la prise
+/// a finalement été oubliée. Un report suivi d'une prise est masqué.
+List<HistoryEntry> visibleHistory(List<HistoryEntry> history) {
+  final missedKeys = {
+    for (final h in history)
+      if (h.status == HistoryStatus.oublie) h.key
+  };
+  return history
+      .where((h) => h.status != HistoryStatus.decale || missedKeys.contains(h.key))
+      .toList();
 }
 
 String percent(double r) => '${(r * 100).round()} %';

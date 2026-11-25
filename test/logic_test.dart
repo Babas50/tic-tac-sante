@@ -144,8 +144,33 @@ void main() {
     expect(s.total.onTime, 1);
     expect(s.total.late, 1);
     expect(s.total.missed, 1);
-    expect(s.total.snoozed, 1);
+    expect(s.total.snoozed, 0); // report suivi d'une prise : non compté
     expect(percent(s.total.rate), '67 %');
+  });
+
+  test('un report ne compte et ne s\'affiche que si la prise est oubliée', () {
+    final now = DateTime(2026, 11, 22, 23, 59);
+    final data = sampleData(now);
+    final occ = occurrencesOn(data, now);
+    final until = occ[0].planned.add(const Duration(hours: 1));
+    final reportPris = entry(occ[0], HistoryStatus.decale, actual: occ[0].planned, until: until);
+    final reportOubli = entry(occ[1], HistoryStatus.decale, actual: occ[1].planned, until: until);
+    final reportEnCours = entry(occ[2], HistoryStatus.decale, actual: occ[2].planned, until: until);
+    final h = <HistoryEntry>[
+      reportPris,
+      entry(occ[0], HistoryStatus.pris, actual: until),
+      reportOubli,
+      entry(occ[1], HistoryStatus.oublie),
+      reportEnCours,
+    ];
+    final s = computeStats(h, now, now);
+    expect(s.total.snoozed, 1);
+    expect(s.total.missed, 1);
+    final visible = visibleHistory(h);
+    expect(visible.contains(reportPris), isFalse);
+    expect(visible.contains(reportEnCours), isFalse);
+    expect(visible.contains(reportOubli), isTrue);
+    expect(visible.length, 3);
   });
 
   test('migration : un ancien rappel sans fréquence reste quotidien', () {

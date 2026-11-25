@@ -146,7 +146,8 @@ Future<Uint8List> buildDoctorPdf({
             'Taux de prises respectées : ${percent(t.rate)} '
             '(${t.taken} prises sur ${t.planned} prévues). '
             'Dont ${t.onTime} à l\'heure (à 30 min près), ${t.late} en décalé, '
-            '${t.missed} oubliées. ${t.snoozed} rappels reportés au moins une fois.',
+            '${t.missed} oubliées'
+            '${t.snoozed == 0 ? '' : ' (dont ${t.snoozed} après un report)'}.',
             style: normal),
         pw.SizedBox(height: 6),
         table([
